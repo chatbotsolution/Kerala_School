@@ -1,0 +1,240 @@
+﻿using ASP;
+using Classes.DA;
+using System;
+using System.Collections;
+using System.Data;
+using System.IO;
+using System.Text;
+using System.Web.Profile;
+using System.Web.SessionState;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using SanLib;
+
+public partial class Reports_rptFeeDetails : System.Web.UI.Page
+{
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        if (Session["User_Id"] == null)
+            Response.Redirect("../Login.aspx");
+        if (Page.IsPostBack)
+            return;
+        FillSession();
+        FillStudType();
+        FillClass();
+        FillStream(); ;
+        btnPrint.Enabled = false;
+       // drpStream.Visible = false;
+    }
+
+    protected void FillSession()
+    {
+        drpSession.DataSource = new Common().ExecuteSql("select SessionID,SessionYr from dbo.PS_FeeNormsNew order  by SessionID desc");
+        drpSession.DataTextField = "SessionYr";
+        drpSession.DataValueField = "SessionYr";
+        drpSession.DataBind();
+    }
+
+    private void FillStudType()
+    {
+        new clsStaticDropdowns().FillStudAdmnType(drpStudType);
+    }
+
+    private void FillClass()
+    {
+        drpClass.Items.Clear();
+        drpClass.DataSource = new Common().GetDataTable("ps_sp_get_classesForDDL");
+        drpClass.DataTextField = "classname";
+        drpClass.DataValueField = "classid";
+        drpClass.DataBind();
+        drpClass.Items.Insert(0, new ListItem("--Select--", "0"));
+    }
+    protected void drpClass_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        if (Convert.ToInt32(drpClass.SelectedValue) > 12)
+        {
+            drpStream.Enabled = true;
+
+        }
+        else
+        {
+            drpStream.Enabled = false;
+            drpStream.SelectedValue = "1";
+
+        }
+    }
+    private void FillStream()
+    {
+        //drpStream.Enabled = true;
+        drpStream.DataSource = new clsDAL().GetDataTableQry("Select StreamId,Description From Ps_StreamMaster");
+        drpStream.DataTextField = "Description";
+        drpStream.DataValueField = "StreamId";
+        drpStream.DataBind();
+        drpStream.Items.RemoveAt(0);
+       
+        drpStream.Items.Insert(0, new ListItem("Select Stream-", "1"));
+       
+    }
+
+    protected void btnSearch_Click(object sender, EventArgs e)
+    {
+        Common common = new Common();
+        DataTable dataTable1 = new DataTable();
+        DataTable dataTable2 = common.GetDataTable("Ps_Sp_GetFeeAmount", new Hashtable()
+    {
+      {
+         "@SessionYr",
+         drpSession.SelectedValue.ToString()
+      },
+      {
+         "@StudType",
+         drpStudType.SelectedValue.ToString()
+      },
+      {
+         "@ClassId",
+         drpClass.SelectedValue.ToString()
+      },
+      {
+         "@StreamId",
+         drpStream.SelectedValue.ToString()
+      }
+    });
+        if (dataTable2.Rows.Count > 0)
+        {
+            GenerateReport(dataTable2);
+            btnPrint.Enabled = true;
+        }
+        else
+        {
+            lblReport.Text = "<div style='background-color:Gray; color:White;'  class='tblheader'  align='center'>No Records Found  !</div>";
+            btnPrint.Enabled = false;
+        }
+    }
+
+    private void GenerateReport(DataTable dt)
+    {
+        StringBuilder stringBuilder = new StringBuilder("");
+        stringBuilder.Append("<table border='1px' cellpadding='1' cellspacing='0' style='background-color: #FFF; border-collapse:collapse;border-color:black;' class='tbltxt'  width='100%'>");
+        stringBuilder.Append("<tr>");
+        stringBuilder.Append("<td style='width: 40px' align='right' class='tblheader'>Sl. No.</td>");
+        stringBuilder.Append("<td align='left' class='tblheader'>Fee Name</td>");
+        stringBuilder.Append("<td style='width: 150px' align='left' class='tblheader'>Periodicity</td>");
+        stringBuilder.Append("<td style='width: 150px' align='right' class='tblheader'>Fee Amount </td>");
+        stringBuilder.Append("</tr>");
+        int num1 = 1;
+        double num2 = 0.0;
+        foreach (DataRow row in (InternalDataCollectionBase)dt.Rows)
+        {
+            stringBuilder.Append("<tr>");
+            stringBuilder.Append("<td align='right'>" + num1.ToString() + "&nbsp; &nbsp;</td>");
+            stringBuilder.Append("<td>");
+            stringBuilder.Append(row["FeeName"].ToString().Trim());
+            stringBuilder.Append("</td>");
+            stringBuilder.Append("<td>");
+            stringBuilder.Append(row["PeriodicityType"].ToString().Trim());
+            stringBuilder.Append("</td>");
+            stringBuilder.Append("<td align='right'>");
+            stringBuilder.Append(row["Amount"].ToString().Trim());
+            stringBuilder.Append("</td>");
+            stringBuilder.Append("</tr>");
+            num2 += Convert.ToDouble(row["Amount"].ToString().Trim());
+            ++num1;
+        }
+        stringBuilder.Append("<tr>");
+        stringBuilder.Append("<td colspan='3'  align='right'>");
+        stringBuilder.Append("<strong>Total &nbsp;:&nbsp;</strong>");
+        stringBuilder.Append("</td>");
+        stringBuilder.Append("<td align='right'>");
+        stringBuilder.Append("<strong>" + string.Format("{0:F2}", num2));
+        stringBuilder.Append("</strong></td>");
+        stringBuilder.Append("</tr>");
+        stringBuilder.Append("</table>");
+        lblReport.Text = stringBuilder.ToString().Trim();
+        Session["FeeDetails"] = stringBuilder.ToString().Trim();
+    }
+
+    protected void btnPrint_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            ScriptManager.RegisterClientScriptBlock((Page)this, GetType(), "ShowMessage", "window.open('rptFeeDetailsPrint.aspx');", true);
+        }
+        catch (Exception ex)
+        {
+            string message = ex.Message;
+        }
+    }
+
+    protected void btnExpExcel_Click(object sender, EventArgs e)
+    {
+        if (Session["userrights"].ToString() == "a")
+        {
+            try
+            {
+                if (lblReport.Text.ToString().Trim() != "")
+                {
+                    StringBuilder stringBuilder = new StringBuilder("");
+                    stringBuilder.Append("<table width='100%' cellpadding='0' cellspacing='0' border='0'>");
+                    stringBuilder.Append("<tr><td style='height: 10px'></td></tr>");
+                    stringBuilder.Append("<tr><td align='left' colspan='14'><b>");
+                    stringBuilder.Append("Fee Details Report :-");
+                    stringBuilder.Append("</b></td></tr>");
+                    stringBuilder.Append("<tr><td style='height: 10px'></td></tr></table>");
+                    stringBuilder.Append(lblReport.Text.ToString().Trim());
+                    stringBuilder.Append("<table><tr><td style='height: 10px'></td></tr>");
+                    stringBuilder.Append("<tr><td style='height: 10px'></td></tr>");
+                    stringBuilder.Append("</table>");
+                    ExportToExcel(stringBuilder.ToString());
+                }
+                else
+                    Response.Write("<script language='javascript'>alert('No data exist to export');</script>");
+            }
+            catch (Exception ex)
+            {
+                string message = ex.Message;
+            }
+        }
+        else
+            Response.Write("<script language='javascript'>alert('ONLY ADMIN CAN EXPORT');</script>");
+    }
+
+    private void ExportToExcel(string dataToExport)
+    {
+        try
+        {
+            string str = Server.MapPath("Exported_Files/FeeDetailsRpt" + DateTime.Now.ToString("dd-MM-yyyy hh-mm-ss") + ".xls");
+            FileStream fileStream = new FileStream(str, FileMode.OpenOrCreate, FileAccess.Write);
+            StreamWriter streamWriter = new StreamWriter((Stream)fileStream);
+            streamWriter.WriteLine(dataToExport.ToString().Trim());
+            streamWriter.Close();
+            fileStream.Close();
+            Response.ClearContent();
+            Response.ContentType = "application/vnd.ms-excel";
+            Response.AddHeader("content-disposition", "attachment;filename=" + str);
+            Response.WriteFile(str);
+            Response.End();
+        }
+        catch (Exception ex)
+        {
+            string message = ex.Message;
+        }
+    }
+    //private void changeclass()
+    //{
+    //    try
+    //    {
+          
+
+    //        if (Convert.ToInt32(drpClass.SelectedValue) > 12)
+    //        {
+    //            drpStream.Enabled = true;
+    //        }
+    //        else
+    //            drpStream.Enabled = false;
+    //    }
+    //    catch
+    //    {
+    //    }
+    //}
+}

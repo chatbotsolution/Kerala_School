@@ -1,0 +1,192 @@
+﻿<%@ Page Title="" Language="C#" MasterPageFile="~/MasterPages/Fee.master" AutoEventWireup="true" CodeFile="rptNotice1.aspx.cs" Inherits="Reports_rptNotice" %>
+<%@ Register Assembly="RJS.Web.WebControl.PopCalendar" Namespace="RJS.Web.WebControl"
+    TagPrefix="rjs" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="head" Runat="Server">
+<script language="javascript" type="text/javascript">
+    function blockNonNumbers(obj, e, allowDecimal, allowNegative) {
+        var key;
+        var isCtrl = false;
+        var keychar;
+        var reg;
+
+        if (window.event) {
+            key = e.keyCode;
+            isCtrl = window.event.ctrlKey
+        }
+        else if (e.which) {
+            key = e.which;
+            isCtrl = e.ctrlKey;
+        }
+
+        if (isNaN(key)) return true;
+
+        keychar = String.fromCharCode(key);
+
+        // check for backspace or delete, or if Ctrl was pressed
+        if (key == 8 || isCtrl) {
+            return true;
+        }
+
+        reg = /\d/;
+        var isFirstN = allowNegative ? keychar == '-' && obj.value.indexOf('-') == -1 : false;
+        var isFirstD = allowDecimal ? keychar == '.' && obj.value.indexOf('.') == -1 : false;
+
+        return reg.test(keychar);
+    }
+
+    function validateShow() {
+        var dt = document.getElementById("<%=txtDt.ClientID %>").value;
+        var hdr = document.getElementById("<%=txtHeading.ClientID %>").value;
+        var dtls = document.getElementById("<%=txtDtls.ClientID%>").value;
+        var nm = document.getElementById("<%=txtName.ClientID%>").value;
+        var autho = document.getElementById("<%=txtDesig.ClientID%>").value;
+        var no = document.getElementById("<%=txtNo.ClientID%>").value;
+        if (dt.trim() == "") {
+            alert("Please Enter Date !");
+            document.getElementById("<%=txtDt.ClientID %>").focus();
+            return false;
+        }
+        if (hdr.trim() == "") {
+            alert("Please Enter Notice Heading !");
+            document.getElementById("<%=txtHeading.ClientID %>").focus();
+            return false;
+        }
+        if (dtls.trim() == "") {
+            alert("Please Enter NoticeDetails!");
+            document.getElementById("<%=txtDtls.ClientID %>").focus();
+            return false;
+        }
+        if (nm.trim() == "") {
+            alert("Please Enter Name!");
+            document.getElementById("<%=txtName.ClientID %>").focus();
+            return false;
+        }
+        if (autho.trim() == "") {
+            alert("Please Enter Designation!");
+            document.getElementById("<%=txtDesig.ClientID %>").focus();
+            return false;
+        }
+        if (no.trim() == "") {
+            alert("Please Enter No Of Copies!");
+            document.getElementById("<%=txtNo.ClientID %>").focus();
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+</script>
+
+</asp:Content>
+<asp:Content ID="Content2" ContentPlaceHolderID="ContentPlaceHolder2" Runat="Server">
+<div style="width: 29px; height: 29px; float: left; margin-right: 5px;">
+        <img src="../images/icon_rep.jpg" width="29" height="29"></div>
+    <div style="padding-top: 5px;">
+        <h2>
+            Print School Notie</h2>
+    </div>
+    <div class="spacer">
+        <img src="../images/mask.gif" height="8" width="10" /></div>
+    <table border="0" cellspacing="0" cellpadding="0" >
+        <tr>
+            <td class="tbltxt" style="width: 150px">
+                Date
+            </td>
+            <td width="5px" class="tbltxt">
+                :
+            </td>
+            <td style="width: 250px">
+                <asp:TextBox ID="txtDt" runat="server" Width="180px" ></asp:TextBox>
+                <rjs:PopCalendar ID="dtpDt" runat="server" Control="txtDt" />
+            </td>
+        </tr>
+        <tr>
+        <td style="width: 150px"><br /></td>
+        </tr>
+        <tr>
+            <td class="tbltxt" style="width: 150px; height: 33px;">
+                Notice Heading
+            </td>
+            <td width="5" class="tbltxt" style="height: 33px">
+                :
+            </td>
+            <td style="height: 33px" >
+                <asp:TextBox ID="txtHeading" runat="server"  TabIndex="3"  Width="180px" ></asp:TextBox>
+            </td>
+        </tr>
+        <tr>
+        <td style="width: 150px"><br /></td>
+        </tr>
+        <tr>
+            <td class="tbltxt" style="width: 150px" valign="top">
+                Notice Details
+            </td>
+            <td class="tbltxt" valign="top">
+                :
+            </td>
+            <td>
+                <asp:TextBox ID="txtDtls" runat="server" CssClass="vsmalltb" TabIndex="3" 
+                    TextMode="MultiLine" Height="70px" Width="250px"></asp:TextBox>
+            </td>
+        </tr>
+       <tr>
+        <td style="width: 150px"><br /></td>
+        </tr>
+        <tr>
+            <td class="tbltxt" style="width: 150px">
+                Authority Name
+            </td>
+            <td class="tbltxt">
+                :
+            </td>
+            <td>
+                <asp:TextBox ID="txtName" runat="server" 
+                    Width="180px" TabIndex="5" ></asp:TextBox>
+            </td>
+        </tr>
+        <tr>
+        <td style="width: 150px"><br /></td>
+        </tr>
+        <tr>
+            <td class="tbltxt" style="width: 150px">
+                Authority Designation
+            </td>
+            <td class="tbltxt">
+                :
+            </td>
+            <td>
+                <asp:TextBox ID="txtDesig" runat="server" CssClass="vsmalltb"
+                    Width="180px" TabIndex="5"></asp:TextBox>
+            </td>
+        </tr>
+        <tr>
+        <td style="width: 150px"><br /></td>
+        </tr>
+        <tr>
+            <td class="tbltxt" style="width: 150px">
+                No Of Copies
+            </td>
+            <td class="tbltxt">
+                :
+            </td>
+            <td>
+                <asp:TextBox ID="txtNo" runat="server" CssClass="vsmalltb" onkeypress="return blockNonNumbers(this, event, true, false);"
+                    Width="30px" TabIndex="5"></asp:TextBox>
+            </td>
+        </tr>
+        <tr>
+        <td style="width: 150px"><br /></td>
+        </tr>
+        <tr>
+        <td ></td>
+        <td></td>
+        <td align="left">
+            <asp:Button ID="btnPrint" runat="server" Text="Print" OnClientClick="return validateShow();"
+                onclick="btnPrint_Click" />
+        </td>
+        </tr>
+    </table>
+</asp:Content>
+
+
+

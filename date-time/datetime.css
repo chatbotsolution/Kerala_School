@@ -1,0 +1,62 @@
+﻿	
+.clock {
+width: 260px;
+margin: 0 -10px 0 0;
+padding: 17px 0 0;
+color: #fff;
+
+}
+.clock ul {
+width: 250px;
+margin: 0 auto;
+padding: 0;
+list-style: none;
+text-align: center;
+display:inline;
+}
+
+.clock ul li {
+display: inline;
+font-size:20px;
+text-align: center;
+font-family: "Arial", Helvetica, sans-serif;
+background:#8b503d;
+ 
+padding:5px;
+/*text-shadow: 0 0px 10px rgba(85, 198, 255, 0.5), 0 0px 10px rgba(85, 198, 255, 0.5), 0 0px 10px rgba(85, 198, 255, 0.5)*/
+}
+#Date { 
+font-family: 'Arial', Helvetica, sans-serif;
+font-size: 14px;
+text-align: right;
+color:#cf876f;
+font-weight:bold;
+ 
+ 
+}
+
+#point {
+position: relative;
+-moz-animation: mymove 1s ease infinite;
+-webkit-animation: mymove 1s ease infinite;
+padding-left:2px;
+padding-right: 2px;
+background:none;
+color:#8b503d;
+font-weight:bold;
+}
+
+/* Animasi Detik Kedap - Kedip */
+@-webkit-keyframes mymove 
+{
+0% {opacity:1.0; text-shadow:0 0 20px #00c6ff;}
+50% {opacity:0; text-shadow:none; }
+100% {opacity:1.0; text-shadow:0 0 20px #00c6ff; } 
+}
+
+@-moz-keyframes mymove 
+{
+0% {opacity:1.0; text-shadow:0 0 20px #00c6ff;}
+50% {opacity:0; text-shadow:none; }
+100% {opacity:1.0; text-shadow:0 0 20px #00c6ff; } 
+}

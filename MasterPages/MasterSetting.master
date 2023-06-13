@@ -1,0 +1,302 @@
+﻿<%@ Master Language="C#" AutoEventWireup="true" CodeFile="MasterSetting.master.cs" Inherits="MasterPages_MasterSetting" %>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head id="Head1" runat="server">
+    <title>CT-eVidyalaya</title>
+      <script src="../Scripts/CommonScript.js" type="text/javascript"></script>
+    <script src="../Scripts/accordionmenu.js" type="text/javascript"></script>
+    <link href="../css/accordionmenu.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="../css/layout.css" type="text/css">
+    <link href="../font-awesome-4.7.0/css/font-awesome.css" rel="stylesheet" type="text/css" />
+    <link href="../font-awesome-4.7.0/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
+    <link href="../date-time/datetime.css" rel="stylesheet" type="text/css" />
+    <script src="../date-time/jquery.min.js" type="text/javascript"></script>
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            // Making 2 variable month and day
+            var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            var dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+
+            // make single object
+            var newDate = new Date();
+            // make current time
+            newDate.setDate(newDate.getDate());
+            // setting date and time
+            $('#Date').html(dayNames[newDate.getDay()] + " " + newDate.getDate() + ' ' + monthNames[newDate.getMonth()] + ' ' + newDate.getFullYear());
+
+            setInterval(function () {
+                // Create a newDate() object and extract the seconds of the current time on the visitor's
+                var seconds = new Date().getSeconds();
+                // Add a leading zero to seconds value
+                $("#sec").html((seconds < 10 ? "0" : "") + seconds);
+            }, 1000);
+
+            setInterval(function () {
+                // Create a newDate() object and extract the minutes of the current time on the visitor's
+                var minutes = new Date().getMinutes();
+                // Add a leading zero to the minutes value
+                $("#min").html((minutes < 10 ? "0" : "") + minutes);
+            }, 1000);
+
+            setInterval(function () {
+                // Create a newDate() object and extract the hours of the current time on the visitor's
+                var hours = new Date().getHours();
+                // Add a leading zero to the hours value
+                $("#hours").html((hours < 10 ? "0" : "") + hours);
+            }, 1000);
+        });
+</script>
+<script type="text/javascript">
+    window.onscroll = function () { scrollFunction() };
+
+    function scrollFunction() {
+
+        if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+            var id = document.getElementById("Backtotop");
+            document.getElementById("Backtotop").style.display = "block";
+        } else {
+            document.getElementById("Backtotop").style.display = "none";
+        }
+    }
+
+    // When the user clicks on the button, scroll to the top of the document
+    function topFunction() {
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+    }
+    </script>
+    <script language="javascript" type="text/javascript">
+        function extractNumber(obj, decimalPlaces, allowNegative) {
+            var temp = obj.value;
+
+            // avoid changing things if already formatted correctly
+            var reg0Str = '[0-9]*';
+            if (decimalPlaces > 0) {
+                reg0Str += '\\.?[0-9]{0,' + decimalPlaces + '}';
+            } else if (decimalPlaces < 0) {
+                reg0Str += '\\.?[0-9]*';
+            }
+            reg0Str = allowNegative ? '^-?' + reg0Str : '^' + reg0Str;
+            reg0Str = reg0Str + '$';
+            var reg0 = new RegExp(reg0Str);
+            if (reg0.test(temp)) return true;
+
+            // first replace all non numbers
+            var reg1Str = '[^0-9' + (decimalPlaces != 0 ? '.' : '') + (allowNegative ? '-' : '') + ']';
+            var reg1 = new RegExp(reg1Str, 'g');
+            temp = temp.replace(reg1, '');
+
+            if (allowNegative) {
+                // replace extra negative
+                var hasNegative = temp.length > 0 && temp.charAt(0) == '-';
+                var reg2 = /-/g;
+                temp = temp.replace(reg2, '');
+                if (hasNegative) temp = '-' + temp;
+            }
+
+            if (decimalPlaces != 0) {
+                var reg3 = /\./g;
+                var reg3Array = reg3.exec(temp);
+                if (reg3Array != null) {
+                    // keep only first occurrence of .
+                    //  and the number of places specified by decimalPlaces or the entire string if decimalPlaces < 0
+                    var reg3Right = temp.substring(reg3Array.index + reg3Array[0].length);
+                    reg3Right = reg3Right.replace(reg3, '');
+                    reg3Right = decimalPlaces > 0 ? reg3Right.substring(0, decimalPlaces) : reg3Right;
+                    temp = temp.substring(0, reg3Array.index) + '.' + reg3Right;
+                }
+            }
+
+            obj.value = temp;
+        }
+
+        function blockNonNumbers(obj, e, allowDecimal, allowNegative) {
+
+
+            var key;
+            var isCtrl = false;
+            var keychar;
+            var reg;
+
+            if (window.event) {
+                key = e.keyCode;
+                isCtrl = window.event.ctrlKey
+            }
+            else if (e.which) {
+                key = e.which;
+                isCtrl = e.ctrlKey;
+            }
+
+            if (isNaN(key)) return true;
+
+            keychar = String.fromCharCode(key);
+
+            // check for backspace or delete, or if Ctrl was pressed
+            if (key == 8 || isCtrl) {
+                return true;
+            }
+
+            reg = /\d/;
+            var isFirstN = allowNegative ? keychar == '-' && obj.value.indexOf('-') == -1 : false;
+            var isFirstD = allowDecimal ? keychar == '.' && obj.value.indexOf('.') == -1 : false;
+
+            return isFirstN || isFirstD || reg.test(keychar);
+        }
+
+    </script>
+</head>
+<body>
+    <form id="form1" runat="server">
+    <asp:ScriptManager ID="ScriptManager1" runat="server">
+    </asp:ScriptManager>
+    <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0" class="outertable">
+        <tr>
+           
+            <td height="60" valign="middle" class="topbar">
+                 
+                <div class="logo-img">
+                    <img src="../images/logo-new.png" width="60" />
+                </div>
+                <div class="logo-txt">
+                    <asp:Label ID="lblSSVM" runat="server" Text=""></asp:Label>
+                </div>
+                <div class="rght-side">
+                    
+
+                    <div class="clock">
+<div id="Date"></div>
+<ul>
+<li id="hours"></li>
+<li id="point">:</li>
+<li id="min"></li>
+<li id="point">:</li>
+<li id="sec"></li>
+</ul>
+</div>
+
+                </div>
+            
+            </td>
+        </tr>
+    </table>
+   <table width="90%" border="0" align="center" cellpadding="0" cellspacing="0" class="outertable outer-btm">
+        <tr>
+            <td class="innersecbar" valign="top">
+                 <div class="innersecbar_lft">
+                    <div style="text-align:left; float:left">
+                   <%-- <asp:ImageButton ID="imgBtnDashboard" runat="server" ImageUrl="" AlternateText=" Dashboard" CssClass="fa fa-dashboard space"
+                        OnClick="imgBtnDashboard_Click" CausesValidation="False" />--%>
+                        <asp:LinkButton ID="lbDashboard" runat="server" Font-Underline="false" 
+                        onclick="lbDashboard_Click"  CssClass="fa fa-dashboard space"> Dashboard</asp:LinkButton>
+                 </div>
+                    <div  class="logininf wlcm"> 
+                    Welcome : <span class="logininfhl">
+                            <asp:Label ID="lblUser" runat="server" Text="Label"></asp:Label></span></div>
+                </div>
+                         <div class="logininf innersecbar_mdl">
+                    <h3>MASTER ENTRY</h3> </div>
+               
+                       
+                    <div class="innersecbar_lft">
+                         <div style="height: 32px; float: right; margin-left: 10px;">
+                        <a href="../Masters/MastersHome.aspx">
+                             <i class="fa fa-home space"> Home</i></a>
+                      <%--  <asp:ImageButton ID="lmgBtnLogout" runat="server" ImageUrl=""  AlternateText=" Logout" CssClass="fa fa-sign-out space"
+                            OnClick="lmgBtnLogout_Click" />--%>
+                             <asp:LinkButton ID="lbLogOut" runat="server" CssClass="fa fa-sign-out space" 
+                            Font-Underline="false" onclick="lbLogOut_Click"> Logout</asp:LinkButton>
+
+                    </div>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top">
+                <table border="0" cellspacing="0" cellpadding="0" style="height: 100%; width: 100%;">
+                    <tr>
+                        <td valign="top" class="nav">
+                            <div id="acdnmenu">
+                                <ul>
+                                    <li>Admission &amp; Fee Masters
+                                        <ul >
+                                        <li><a href="../Masters/MastersHome.aspx">HOME</a></li>
+                                         <li><a href="../Masters/StudentCategory.aspx">Define Student Category</a></li>
+                                        <li><a href="../Masters/StudentReligion.aspx">Define Religion</a></li>
+                                            <li><a href="../Masters/StudentHouse.aspx">Define House</a></li>
+                                        <li><a href="../Masters/StudentStatus.aspx">Define Student Status</a></li>
+                                        <%--<li><a href="../Masters/HouseMaster.aspx">DefineStudent House</a></li>--%>
+                                       <%-- <li><a href="../Exam/SubjectMaster.aspx">Define Classwise Subject</a></li>--%>
+                                       
+                                        <li><a href="../Masters/StreamMaster.aspx">Define Student Stream</a></li>
+                                        <li><a href="../Masters/ClassMaster.aspx">Define Class Details</a></li>
+                                        <li><a href="../Masters/FeeNormsList.aspx">Define Session Details</a></li>
+                                        <li><a href="../Masters/FeeComponentList.aspx">Define Fee Components</a></li>
+                                        <li><a href="../Masters/FeeAmount.aspx">Define Fee Amount</a></li>
+                                        <%-- <li><a href="../Masters/SetAccountHead.aspx">Assign Fixed Account Head</a></li>--%>
+                                           
+                                        </ul>
+                                    </li>
+                                    <li>Settings on Computerisation
+                                        <ul>
+                                          <li><a href="../Masters/SetPrevBal.aspx">Set Old Dues (Prev Session)</a></li>
+                                            <%--<li><a href="../Masters/InitUpdtFine.aspx">Update Fine Details</a></li>--%>
+                                           <li><a href="../Masters/InitStudentAC.aspx">Set Stud Open. Bal(As On 1 Apr)</a></li>
+                                           <li><a href="../Masters/InitStudentACTilDt.aspx">Set Stud Mid Session Balance</a></li>
+                                           <li><a href="../FeeManagement/GenerateFee.aspx">Generate Fee</a></li>
+                                        </ul>
+                                    </li>
+                                    <li>Inventory Masters
+                                        <ul >
+                                         <li><a href="../Masters/BrandList.aspx">Brand Master</a></li>
+                                        <li><a href="../Masters/CatagoryList.aspx">Category Master</a></li>
+                                        <li><a href="../Masters/ItemLocationList.aspx">Inventory Location Master</a></li>
+                                        <li><a href="../Masters/ItemMasterList.aspx">Item Master</a></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </div>
+                        </td>
+                        <td valign="top" class="innertblcon">
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                
+                                <tr>
+                                    
+                                    <td bgcolor="#FEFEFE" valign="top">
+                                        <asp:ContentPlaceHolder ID="ContentPlaceHolder1" runat="server">
+                                        </asp:ContentPlaceHolder>
+                                    </td>
+                                     
+                                </tr>
+                               
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        
+    </table>
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="height: 100%;">
+    <tr>
+        <td>
+        <div style="width: 8%; float:right; padding-bottom:10px; text-align:right" >
+              <button type="button" id="Backtotop" onclick="return topFunction();"><i class="fa fa-arrow-up"></i> BackToTop</button>
+            </div>
+        </td>
+        </tr>
+         <tr>
+            <td valign="middle" class="footer">
+            <div style="padding:10px;">
+                <div style="width: 40%; float:left; padding-bottom:10px;">Vidyalaya 1.0 &copy; 2020 | All Rights Reserved</div>
+                <div style="width: 40%; float:right; padding-bottom:10px; text-align:right">Powered by : <a href="http://www.xprosolutions.co.in/" target="_blank">XPRO</a>
+                </div>
+            </div>
+            </td>
+        </tr>
+    </table>
+    </form>
+</body>
+</html>

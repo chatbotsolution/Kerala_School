@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.33423.256
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "kerala", ".", "{1A37D014-1BA9-4EAE-88FD-7CA90F578AF0}"
+	ProjectSection(WebsiteProperties) = preProject
+		TargetFrameworkMoniker = ".NETFramework,Version%3Dv4.0"
+		ProjectReferences = "{F306308F-0C5E-4241-9413-4CB95D5B719F}|SanLib.dll;"
+		Debug.AspNetCompiler.VirtualPath = "/School_Management"
+		Debug.AspNetCompiler.PhysicalPath = "..\Loyola_18-07-2019\"
+		Debug.AspNetCompiler.TargetPath = "PrecompiledWeb\School_Management\"
+		Debug.AspNetCompiler.Updateable = "true"
+		Debug.AspNetCompiler.ForceOverwrite = "true"
+		Debug.AspNetCompiler.FixedNames = "false"
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.VirtualPath = "/School_Management"
+		Release.AspNetCompiler.PhysicalPath = "..\Loyola_18-07-2019\"
+		Release.AspNetCompiler.TargetPath = "PrecompiledWeb\School_Management\"
+		Release.AspNetCompiler.Updateable = "true"
+		Release.AspNetCompiler.ForceOverwrite = "true"
+		Release.AspNetCompiler.FixedNames = "false"
+		Release.AspNetCompiler.Debug = "False"
+		VWDPort = "4413"
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SanLib", "SanLib\SanLib.csproj", "{F306308F-0C5E-4241-9413-4CB95D5B719F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1A37D014-1BA9-4EAE-88FD-7CA90F578AF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A37D014-1BA9-4EAE-88FD-7CA90F578AF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A37D014-1BA9-4EAE-88FD-7CA90F578AF0}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A37D014-1BA9-4EAE-88FD-7CA90F578AF0}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{F306308F-0C5E-4241-9413-4CB95D5B719F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F306308F-0C5E-4241-9413-4CB95D5B719F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F306308F-0C5E-4241-9413-4CB95D5B719F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F306308F-0C5E-4241-9413-4CB95D5B719F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C4479DBA-17FB-4378-B51E-BF4B794B30A3}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,17 @@
+﻿using ASP;
+using System;
+using System.Web.Profile;
+using System.Web.SessionState;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+
+public partial class Reports_rptProspectusSalePrint : System.Web.UI.Page
+{
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        if (Page.IsPostBack || Session["printDataSale"] == null)
+            return;
+        lblprint.Text = Session["printDataSale"].ToString();
+    }
+}

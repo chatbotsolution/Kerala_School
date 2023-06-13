@@ -1,0 +1,423 @@
+﻿using System;
+using System.Collections;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.IO;
+using System.Data.OleDb;
+using System.Data;
+using ASP;
+using SanLib;
+using System.Globalization;
+using System.Data.SqlClient;
+using System.Configuration;
+
+
+public partial class FeeManagement_UploadExcelOnline : System.Web.UI.Page
+{
+   
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        
+        if (Session["User_Id"] == null)
+            Response.Redirect("../Login.aspx");
+        Panel1.Visible = false;
+    }
+    protected void Button1_Click(object sender, EventArgs e)
+    {
+        string connString = "";
+        string strFileType = Path.GetExtension(FileUpload1.FileName).ToLower();
+        string path = Server.MapPath("~/Up_Files/Fee/") + Path.GetFileName(FileUpload1.PostedFile.FileName);
+        if (File.Exists(path))
+            File.Delete(path);
+        FileUpload1.PostedFile.SaveAs(path);
+        //Connection String to Excel Workbook
+        if (strFileType.Trim() == ".xls")
+        {
+            connString = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + path + ";Extended Properties=\"Excel 8.0;HDR=Yes;IMEX=2\"";
+        }
+        else if (strFileType.Trim() == ".xlsx")
+        {
+            connString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + path + ";Extended Properties=\"Excel 12.0;HDR=Yes;IMEX=2\"";
+        }
+        OleDbConnection conn = new OleDbConnection(connString);
+        if (conn.State == ConnectionState.Closed)
+            conn.Open();
+        string sheet1 = conn.GetOleDbSchemaTable(OleDbSchemaGuid.Tables, null).Rows[0]["TABLE_NAME"].ToString();
+        // DataTable activityDataTable = conn.GetOleDbSchemaTable(OleDbSchemaGuid.Tables, null);
+
+        string query = "SELECT* FROM [" + sheet1 + "]";
+
+        if (conn.State == ConnectionState.Closed)
+            conn.Open();
+        OleDbCommand cmd = new OleDbCommand(query, conn);
+        OleDbDataAdapter da = new OleDbDataAdapter(cmd);
+        DataSet ds = new DataSet();
+        da.Fill(ds);
+        grdstudentsColl.DataSource = ds.Tables[0];
+        grdstudentsColl.DataBind();
+       lblMsg.Text= Insertfee(ds.Tables[0]);
+
+
+        // Response.Write(count);
+        da.Dispose();
+        conn.Close();
+        conn.Dispose();
+
+
+    }
+    private string Insertfee(DataTable dt)
+    {
+        string msg = "";
+        DataTable ErrorTable = new DataTable();
+        SqlConnection con = new SqlConnection();
+        con.ConnectionString = ConfigurationSettings.AppSettings["conString"].ToString();
+        con.ConnectionTimeout.Equals(0);
+        int admnno; DateTime TransDate = DateTime.Now;
+        string name = FileUpload1.FileName;
+        con.Open();
+        SqlTransaction transaction = null;
+        //DateTime ctddate = DateTime.ParseExact("03/05/2018 17:30:35", "dd/MM/yyyy hh:mm:ss", CultureInfo.InvariantCulture);
+        if (dt.Rows.Count > 0)
+        {
+            try
+            {
+              transaction = con.BeginTransaction();
+              foreach (DataRow row in dt.Rows)
+                {
+
+                    Hashtable ht = new Hashtable();
+                    string session = row["Year"].ToString().Trim();
+                    double balance = 0.00;
+                    double fine = 0.00; string debit = "", FeeDesc = "";
+                    FeeDetails FD = new FeeDetails();
+                    DataTable dt1 = FD.GetFeeDetailsbyAdmnNo(row["AdmnNo"].ToString().Trim(), session);
+                    if (row["Late_Fees"].ToString().Trim() != String.Empty)
+                        fine = Convert.ToDouble(row["Late_Fees"].ToString().Trim());
+                    else
+                        fine = 0.00;
+                    if (dt1 != null && dt1.Rows.Count > 0)
+                    {
+                        ht.Add("@Credit", row["Amount"].ToString().Trim());
+                        switch (row["Quarter"].ToString().Trim())
+                        {
+                            case "ALL FOUR":
+                                            debit = dt1.Rows[0]["AnnualFeeForEx"].ToString().Trim();
+                                            balance = (Convert.ToDouble(dt1.Rows[0]["AnnualFeeForEx"].ToString().Trim()) + fine) - Convert.ToDouble(row["Amount"].ToString().Trim());
+                                            ht.Add("@Balance", balance);
+                                            FeeDesc = "WHOLE YEAR FEE";
+                                            TransDate = DateTime.Now;
+                                            break;
+                            case "ALL THREE":
+                                            debit = dt1.Rows[0]["ThreeQtrForNew"].ToString().Trim();
+                                            balance = (Convert.ToDouble(dt1.Rows[0]["ThreeQtrForNew"].ToString().Trim()) + fine) - Convert.ToDouble(row["Amount"].ToString().Trim());
+                                            ht.Add("@Balance", balance);
+                                            FeeDesc = "THREE QTR FEE";
+                                            TransDate = FD.getDuedate("APR-JUN", session);
+                                            break;
+                            case "FIRST":
+                                            debit = dt1.Rows[0]["first"].ToString().Trim();
+                                            balance = (Convert.ToDouble(dt1.Rows[0]["first"].ToString().Trim()) + fine) - Convert.ToDouble(row["Amount"].ToString().Trim());
+                                            ht.Add("@Balance", balance);
+                                            FeeDesc = "APR-JUN Quarterly Fee";
+                                            TransDate = FD.getDuedate("APR-JUN", session);
+                                            break;
+                            case "SECOND":
+                                            debit = dt1.Rows[0]["second"].ToString().Trim();
+                                            balance = (Convert.ToDouble(dt1.Rows[0]["second"].ToString().Trim()) + fine) - Convert.ToDouble(row["Amount"].ToString().Trim());
+                                            ht.Add("@Balance", balance);
+                                            FeeDesc = "JUL-SEP Quarterly Fee";
+                                            TransDate = FD.getDuedate("JUL-SEP", session);
+                                            break;
+                            case "THIRD":
+                                            debit = dt1.Rows[0]["third"].ToString().Trim();
+                                            balance = (Convert.ToDouble(dt1.Rows[0]["third"].ToString().Trim()) + fine) - Convert.ToDouble(row["Amount"].ToString().Trim());
+                                            ht.Add("@Balance", balance);
+                                            FeeDesc = "OCT-DEC Quarterly Fee";
+                                            TransDate = FD.getDuedate("OCT-DEC", session);
+                                            break;
+                            case "FOURTH":
+                                            debit = dt1.Rows[0]["fourth"].ToString().Trim();
+                                            balance = (Convert.ToDouble(dt1.Rows[0]["fourth"].ToString().Trim()) + fine) - Convert.ToDouble(row["Amount"].ToString().Trim());
+                                            ht.Add("@Balance", balance);
+                                            FeeDesc = "JAN-MAR Quarterly Fee";
+                                            TransDate = FD.getDuedate("JAN-MAR", session);
+                                            break;
+                                 default:
+                                        //ht.Add("@Fine", fine);
+                                        //ht.Add("@Debit", debit);
+                                        //ht.Add("@FeeDesc", FeeDesc);
+                                        break;
+                        }
+                        ht.Add("@Fine", fine);
+                        ht.Add("@Debit", debit);
+                        ht.Add("@FeeDesc", FeeDesc);
+                    }
+                    else
+                    {
+                        ht.Add("@Credit", 0.00);
+                        ht.Add("@Debit", 0.00);
+                        ht.Add("@Balance", 0.00);
+                        ht.Add("@FeeDesc", "");
+                        ht.Add("@Fine", 0.00);
+                    }
+
+                    int classid = Convert.ToInt32(new clsDAL().ExecuteScalarQry("Select Classid from Ps_ClassMaster where ClassName='" + row["Class"].ToString().Trim() + "'"));
+                    ht.Add("@ClassId", classid);
+
+                    ht.Add("@TrnsNo", row["Trans_Num"].ToString().Trim());
+                    ht.Add("@AdmnNo", row["AdmnNo"].ToString().Trim());
+                    ht.Add("@Session", session);
+                    ht.Add("@Quarter", row["Quarter"].ToString().Trim());
+                    ht.Add("@Aggregator", row["PayMode"].ToString().Trim());
+                    ht.Add("@Amount", row["Amount"].ToString().Trim());
+
+
+
+                    // ht.Add("@Clearance_date", DateTime.ParseExact(row["Transaction Date"].ToString().Trim(), "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture));
+                    ht.Add("@Clearance_date", row["Trans_Date"].ToString().Trim());
+                    ht.Add("@TrnsDesc", "");
+                    ht.Add("@UserID", Session["User_Id"].ToString().Trim());
+                    ht.Add("@MisDate", row["Trans_Date"].ToString().Trim());
+                    ht.Add("@MisFileName", name);
+                    clsDAL clsdal = new clsDAL();
+                    DataTable newdt = clsdal.GetDataTableQry("Select AdmnNo from Ps_StudMaster where OldAdmnNo='" + row["AdmnNo"].ToString().Trim() + "'");
+                    if (newdt.Rows.Count > 0)
+                    {
+                        admnno = Convert.ToInt32(newdt.Rows[0]["AdmnNo"].ToString().Trim());
+                        //------------Insert Fee------------------------------------------------------
+
+                        // sqlCmd1 = ExecuteProc("insertFeeOnline", transaction, con, ht);
+
+                        SqlCommand sqlCommand1 = new SqlCommand("insertFeeOnline", con, transaction);
+                        sqlCommand1.CommandType = CommandType.StoredProcedure;
+                        AddParam(sqlCommand1, ht);
+                        sqlCommand1.ExecuteNonQuery();
+                        //--------------Insert Fine Details if any--------------------------------   
+                        #region Fine Details
+
+
+                        if (fine > 0.00)
+                        {
+                            SqlCommand sqlCommand2 = new SqlCommand("New_insert_FineLedger", con, transaction);
+                            sqlCommand2.CommandType = CommandType.StoredProcedure;
+
+                            AddParam(sqlCommand2, new Hashtable()
+                                   {
+                                                    {
+                                                        "@TransDate",
+                                                         TransDate
+                                                    },
+                                                     {
+                                                        "@AdmnNO",
+                                                         admnno
+                                                    },
+                                                    {
+                                                        "@FeeDesc",
+                                                         FeeDesc
+                                                    },
+                                                   {
+                                                        "@debit",
+                                                         fine
+                                                    },
+                                                    {
+                                                        "@credit",
+                                                        fine
+                                                    },
+                                                      {
+                                                        "@TrnsNo",
+                                                        row["Trans_Num"].ToString().Trim()
+                                                    },
+                                                      {
+                                                        "@UserID",
+                                                         Session["User_Id"].ToString().Trim()
+                                                    },
+                                                     {
+                                                        "@schoolid",
+                                                        Session["SchoolId"].ToString()
+                                                    },
+                                         });
+
+                            sqlCommand2.ExecuteNonQuery();
+                        }
+
+                        #endregion
+                        //------------ -Insert  Fee by Id in Ledger-------------------------------------
+                        #region Fee update in Ledger
+
+
+                        if (row["Quarter"].ToString().Trim() == "ALL FOUR")
+                        {
+                            SqlCommand sqlCommand4 = new SqlCommand("NewUpdateFeeLedgerYearly", con, transaction);
+                                sqlCommand4.CommandType = CommandType.StoredProcedure;
+                                AddParam(sqlCommand4, new Hashtable() {
+                                                                               {
+                                                                                    "@AdmnNO",
+                                                                                     admnno
+                                                                                },
+                                                                               {
+                                                                                    "@Receipt_VrNo",
+                                                                                    row["Trans_Num"].ToString().Trim()
+                                                                                },
+                                                                                 {
+                                                                                    "@UserID",
+                                                                                     Session["User_Id"].ToString().Trim()
+                                                                                },
+                                                                                {
+                                                                                    "@UserDate",
+                                                                                     DateTime.Now
+                                                                                },
+                                                                                {
+                                                                                    "@PayMode",
+                                                                                    "Online"
+                                                                                },
+                                                                                 {
+                                                                                    "@Session",
+                                                                                     session
+                                                                                }
+                                                                                });
+                                sqlCommand4.ExecuteNonQuery();
+
+
+                        }
+                        else  if (row["Quarter"].ToString().Trim() == "ALL THREE")
+                        {
+                            SqlCommand sqlCommand5 = new SqlCommand("NewUpdateFeeLedgerThreeQtrly", con, transaction);
+                            sqlCommand5.CommandType = CommandType.StoredProcedure;
+                            AddParam(sqlCommand5, new Hashtable() {
+                                                                             {
+                                                                                    "@AdmnNO",
+                                                                                     admnno
+                                                                                },
+                                                                                {
+                                                                                    "@TransDate",
+                                                                                     TransDate
+                                                                                },
+                                                                                 {
+                                                                                    "@Receipt_VrNo",
+                                                                                    row["Trans_Num"].ToString().Trim()
+                                                                                },
+                                                                                 {
+                                                                                    "@UserID",
+                                                                                     Session["User_Id"].ToString().Trim()
+                                                                                },
+                                                                                {
+                                                                                    "@UserDate",
+                                                                                     DateTime.Now
+                                                                                },
+                                                                                {
+                                                                                    "@PayMode",
+                                                                                    "Online"
+                                                                                },
+                                                                                 {
+                                                                                    "@Session",
+                                                                                     session
+                                                                                }
+                                                                                });
+                            sqlCommand5.ExecuteNonQuery();
+
+
+                        }
+                        else
+                        {
+                            //DataSet ds = FD.GetFeeAmountByComp(row["AdmnNo"].ToString().Trim(), session, row["Quarter"].ToString().Trim());
+                            //if (ds != null)
+                            //  {
+                            // for (int j = 0; j < ds.Tables[0].Rows.Count; j++)
+                            //   {
+                            //    double credit = Math.Round(Convert.ToDouble(ds.Tables[0].Rows[j]["Amount"].ToString().Trim()), 2);
+                                SqlCommand sqlCommand3 = new SqlCommand("NewUpdateFeeLedger", con, transaction);
+                                sqlCommand3.CommandType = CommandType.StoredProcedure;
+                                AddParam(sqlCommand3, new Hashtable()
+                                                                                {
+                                                                                {
+                                                                                    "@TransDate",
+                                                                                     TransDate
+                                                                                },
+                                                                                 {
+                                                                                    "@AdmnNO",
+                                                                                     admnno
+                                                                                },
+                                                                               
+                                                                                 {
+                                                                                    "@Receipt_VrNo",
+                                                                                    row["Trans_Num"].ToString().Trim()
+                                                                                },
+                                                                                 {
+                                                                                    "@UserID",
+                                                                                     Session["User_Id"].ToString().Trim()
+                                                                                },
+                                                                                {
+                                                                                    "@UserDate",
+                                                                                     DateTime.Now
+                                                                                },
+                                                                                {
+                                                                                    "@PayMode",
+                                                                                    "Online"
+                                                                                },
+                                                                                 {
+                                                                                    "@Session",
+                                                                                     session
+                                                                                }
+                                                                                });
+                                sqlCommand3.ExecuteNonQuery();
+                          //  }
+                          //}
+                        }
+                        #endregion
+                    }
+
+                }
+                transaction.Commit();
+                msg = "Fee Inserted Successfully";
+
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                msg = ex.Message.ToString();
+
+            }
+            finally
+            {
+                transaction.Dispose();
+                if (con.State == ConnectionState.Open)
+                    con.Close();
+                
+            }
+        }
+        return msg;
+    }
+    private void AddParam(SqlCommand sqlCommand, Hashtable ht)
+    {
+        foreach (DictionaryEntry dictionaryEntry in ht)
+            sqlCommand.Parameters.AddWithValue((string)dictionaryEntry.Key, dictionaryEntry.Value);
+    }
+    protected void grdstudentsColl_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        GridViewRow row = grdstudentsColl.SelectedRow;
+        lblName.Text = (row.FindControl("lblname") as Label).Text;
+        lblAdmnNo.Text = (row.FindControl("lbladmnno") as Label).Text;
+        lblClass.Text = (row.FindControl("lblClass1") as Label).Text;
+        lblTtnFee.Text = (row.FindControl("lblTuition") as Label).Text;
+        lblSplAct.Text = (row.FindControl("lblSplAct1") as Label).Text;
+        lblSmtCls.Text = (row.FindControl("lblSmtCls1") as Label).Text;
+        lblEngLab.Text = (row.FindControl("lblEngLab1") as Label).Text;
+        lblComp.Text = (row.FindControl("lblComp1") as Label).Text;
+        lblGfee.Text = (row.FindControl("lblGfee1") as Label).Text;
+        lblLib.Text = (row.FindControl("lblLib1") as Label).Text;
+        lblMain.Text = (row.FindControl("lblMain1") as Label).Text;
+        lblsss.Text = (row.FindControl("lblsss1") as Label).Text;
+        lblSclab.Text = (row.FindControl("lblSclab1") as Label).Text;
+        lblSExam.Text = (row.FindControl("lblSExam1") as Label).Text;
+        lblLfine.Text = (row.FindControl("lblFine") as Label).Text;
+        lblCAmount.Text = (row.FindControl("lblCAmnt1") as Label).Text;
+        lblTotalAmnt.Text = (row.FindControl("lblTamnt") as Label).Text;
+        Panel1.Visible = true;
+    }
+    protected void Button2_Click(object sender, EventArgs e)
+    {
+        Panel1.Visible = false;
+    }
+}

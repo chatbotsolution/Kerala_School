@@ -1,0 +1,78 @@
+﻿<%@ Page Title="" Language="C#" MasterPageFile="~/MasterPages/Inner.master" AutoEventWireup="true" CodeFile="FeeDueNotification.aspx.cs" Inherits="Reports_FeeDueNotification" %>
+ <%@ Register Assembly="RJS.Web.WebControl.PopCalendar" Namespace="RJS.Web.WebControl" TagPrefix="rjs" %>
+<asp:Content ID="Content1" ContentPlaceHolderID="ContentPlaceHolder1" runat="Server">
+
+    <script language="javascript" type="text/javascript">
+
+        function selectText() {
+
+            var Cls = document.getElementById("<%=drpForCls.ClientID %>").value;
+            if (Cls == "0") {
+                alert("Please select a class!");
+                document.getElementById("<%=drpForCls.ClientID %>").focus();
+                return false;
+            }
+            else {
+                return true;
+            }
+        }
+    
+      
+    </script>
+
+    
+         <div style="width: 29px; height: 29px; float: left; margin-right: 5px;">
+                    <img src="../images/icon_rep.jpg" width="29" height="29">
+                </div>
+                <div style="padding-top: 5px;">
+                    <h2>
+            <strong>Fee Due Notification</strong>
+            </h2>
+        </div>
+        <div class="spacer"></div>
+        <table class="cnt-box tbltxt" width="100%">
+            <tr>
+                <td >
+                    <b>
+                      Welcome Note  &nbsp;&nbsp;&nbsp;&nbsp;<asp:Label ID="lblTotRec" runat="server" Text=""></asp:Label></b>
+                  
+                </td>
+              
+            </tr>
+            <tr>
+              <td >
+                <asp:TextBox ID="txtWrite" runat="server"  Width="98%" Rows="5" TextMode="MultiLine"
+                        onClientClick="selectText();" TabIndex="1"></asp:TextBox>
+                 </td>
+            </tr>
+            <tr>
+                <td  class="tbltxt cnt-box2">
+                For Class :
+                    <asp:DropDownList ID="drpForCls" runat="server" Width="100px" CssClass="tbltxtbox"
+                        TabIndex="3" AutoPostBack="True" OnSelectedIndexChanged="drpForCls_SelectedIndexChanged">
+                    </asp:DropDownList>
+                    &nbsp; &nbsp;&nbsp;&nbsp;
+                   Defaulter Since:
+                    <asp:TextBox ID="txtTillDate" runat="server" Width="70px" TabIndex="6"></asp:TextBox>
+                    <rjs:popcalendar ID="pcalTillDate" runat="server" Control="txtTillDate" />
+                    &nbsp;&nbsp; &nbsp;Fee Type :
+                    <asp:DropDownList ID="drpFeeType" runat="server" CssClass="vsmalltb" TabIndex="3">
+                        <asp:ListItem Value="0">-All-</asp:ListItem>
+                        <asp:ListItem Value="1">Regular Fee</asp:ListItem>
+                        <asp:ListItem Value="2">Admn./Re-admn Fee</asp:ListItem>
+                    </asp:DropDownList>
+                    &nbsp;
+                    <asp:Button ID="btnShow" runat="server" Text="Show" OnClick="btnShow_Click" TabIndex="4"
+                        OnClientClick="return selectText();" />
+                    &nbsp;<asp:Button ID="btnPrint" runat="server" Text="Print" OnClick="btnPrint_Click" TabIndex="5" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <asp:Label ID="lblReport" runat="server" Text=""></asp:Label>
+                </td>
+        </table>
+     
+</asp:Content>
+
+

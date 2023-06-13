@@ -1,0 +1,684 @@
+﻿using ASP;
+using Classes.DA;
+using RJS.Web.WebControl;
+using SanLib;
+using System;
+using System.Collections;
+using System.Data;
+using System.IO;
+using System.Text;
+using System.Web.Profile;
+using System.Web.SessionState;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+
+public partial class Reports_rptFeeReceivedComponent : System.Web.UI.Page
+{
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        if (Session["SSVMID"] == null)
+            Response.Redirect("../Login.aspx");
+        if (Page.IsPostBack)
+            return;
+        btnPrint.Visible = false;
+        pcalFromDate.SetDateValue(Convert.ToDateTime("1 Apr" + new clsGenerateFee().CreateCurrSession().Trim().Substring(0, 4)));
+        pcalToDate.SetDateValue(DateTime.Now);
+        SetDate();
+    }
+
+    private void SetDate()
+    {
+        clsDAL clsDal = new clsDAL();
+        DataTable dataTable = new DataTable();
+        DataTable dataTableQry = clsDal.GetDataTableQry("select FY,StartDate,EndDate from dbo.ACTS_FinancialYear where (IsFinalized is null or IsFinalized=0)order by fy desc");
+        if (dataTableQry.Rows.Count > 0)
+        {
+            pcalFromDate.SetDateValue(Convert.ToDateTime(dataTableQry.Rows[0]["StartDate"].ToString().Trim()));
+            pcalToDate.SetDateValue(Convert.ToDateTime(dataTableQry.Rows[0]["EndDate"].ToString().Trim()));
+        }
+        else
+            ScriptManager.RegisterClientScriptBlock((Page)this, GetType(), "Call my function", "alert('Please Set the Financial year!');window.location.href='../accounts/OpenFy.aspx'", true);
+    }
+
+    private void clearAll()
+    {
+        lblAnudan.Text = "";
+        lblBookMaterial.Text = "";
+        lblBus.Text = "";
+        lblFine.Text = "";
+        lblHostel.Text = "";
+        lblMiscFee.Text = "";
+        lblPrevDue.Text = "";
+        lblProsFee.Text = "";
+        lblReport.Text = "";
+        lblTotal.Text = "";
+        lblPrev.Text = "";
+        lblOthers.Text = "";
+        lblAdj.Text = "";
+        lblGTotal.Text = "";
+    }
+
+    protected void btnShow_Click(object sender, EventArgs e)
+    {
+        clearAll();
+        StringBuilder stringBuilder = new StringBuilder();
+        Common common = new Common();
+        Hashtable hashtable = new Hashtable();
+        hashtable.Clear();
+        string str1 = common.ExecuteScalarQry("select dbo.fuGetSessionYr('" + pcalFromDate.GetDateValue().ToString("dd MMM yyyy") + "') as FY");
+        ViewState["FY"] = str1;
+        DateTime dateTime1 = Convert.ToDateTime("1 Apr" + str1.Substring(0, 4));
+        DateTime dateTime2 = Convert.ToDateTime("31 Mar" + Convert.ToString(Convert.ToInt32(str1.Substring(0, 4)) + 1));
+        if (pcalToDate.GetDateValue() > dateTime2 || pcalToDate.GetDateValue() < dateTime1)
+            pcalToDate.SetDateValue(dateTime2);
+        string[] strArray = str1.Split('-');
+        string str2 = Convert.ToString(Convert.ToInt32(strArray[0].Trim()) - 1) + "-" + Convert.ToString(Convert.ToInt32(strArray[1].Trim()) - 1);
+        Convert.ToDateTime("1 Apr" + str2.Substring(0, 4));
+        string str3 = Convert.ToString(Convert.ToInt32(strArray[0].Trim()) + 1) + "-" + Convert.ToString(Convert.ToInt32(strArray[1].Trim()) + 1);
+        if (drpModeOfPayment.Text != "All")
+            hashtable.Add("@ModeOfPayment", drpModeOfPayment.SelectedValue.ToString());
+        if (txtFromDate.Text.Trim() != "")
+            hashtable.Add("@FrmDt", pcalFromDate.GetDateValue().ToString("dd MMM yyyy"));
+        else
+            hashtable.Add("@FrmDt", dateTime1.ToString("dd MMM yyyy"));
+        if (txtToDate.Text.Trim() != "")
+            hashtable.Add("@ToDt", pcalToDate.GetDateValue().ToString("dd MMM yyyy"));
+        else if (Convert.ToInt32(strArray[0]) < 2014)
+        {
+            DateTime dateTime3 = Convert.ToDateTime("31 Mar" + str1.Substring(0, 4)).AddYears(1);
+            hashtable.Add("@ToDt", dateTime3.ToString("dd MMM yyyy"));
+        }
+        hashtable.Add("@SessionYr", str1.ToString().Trim());
+        hashtable.Add("@SchoolID", Convert.ToInt32(Session["SchoolId"]));
+        hashtable.Add("@NxtSY", str3);
+        DataSet dataSet1 = new DataSet();
+        DataSet dataSet2;
+        int num;
+        if (Convert.ToInt32(strArray[0]) >= 2014)
+        {
+            hashtable.Add("@PrevSnY", str2.Trim());
+            dataSet2 = common.GetDataSet("Ps_Sp_GetCompWiseFeeNew", hashtable);
+            num = dataSet2.Tables[0].Rows.Count + dataSet2.Tables[1].Rows.Count + dataSet2.Tables[2].Rows.Count + dataSet2.Tables[3].Rows.Count + dataSet2.Tables[4].Rows.Count + dataSet2.Tables[5].Rows.Count + dataSet2.Tables[6].Rows.Count;
+        }
+        else
+        {
+            dataSet2 = common.GetDataSet("Ps_Sp_GetCompWiseFee", hashtable);
+            num = dataSet2.Tables[0].Rows.Count + dataSet2.Tables[1].Rows.Count + dataSet2.Tables[2].Rows.Count + dataSet2.Tables[3].Rows.Count + dataSet2.Tables[4].Rows.Count + dataSet2.Tables[5].Rows.Count + dataSet2.Tables[6].Rows.Count + dataSet2.Tables[7].Rows.Count + dataSet2.Tables[8].Rows.Count + dataSet2.Tables[9].Rows.Count;
+        }
+        if (num > 0)
+        {
+            CreateReport(dataSet2);
+            btnPrint.Visible = true;
+        }
+        else
+            ScriptManager.RegisterClientScriptBlock((Control)btnShow, btnShow.GetType(), "ShowMessage", "alert('No Record Found');", true);
+    }
+
+    protected void CreateReport(DataSet ds)
+    {
+        double num1 = 0.0;
+        double num2 = 0.0;
+        string str1 = Information();
+        StringBuilder stringBuilder1 = new StringBuilder();
+        stringBuilder1.Append(str1);
+        StringBuilder stringBuilder2 = new StringBuilder("");
+        StringBuilder stringBuilder3 = new StringBuilder("");
+        StringBuilder stringBuilder4 = new StringBuilder("");
+        StringBuilder stringBuilder5 = new StringBuilder("");
+        StringBuilder stringBuilder6 = new StringBuilder("");
+        StringBuilder stringBuilder7 = new StringBuilder("");
+        StringBuilder stringBuilder8 = new StringBuilder("");
+        StringBuilder stringBuilder9 = new StringBuilder("");
+        StringBuilder stringBuilder10 = new StringBuilder("");
+        StringBuilder stringBuilder11 = new StringBuilder("");
+        StringBuilder stringBuilder12 = new StringBuilder("");
+        StringBuilder stringBuilder13 = new StringBuilder("");
+        StringBuilder stringBuilder14 = new StringBuilder();
+        StringBuilder stringBuilder15 = new StringBuilder();
+        StringBuilder stringBuilder16 = new StringBuilder();
+        StringBuilder stringBuilder17 = new StringBuilder();
+        StringBuilder stringBuilder18 = new StringBuilder();
+        double num3 = 0.0;
+        double num4 = 0.0;
+        double num5 = 0.0;
+        if (ds.Tables[0].Rows.Count > 0)
+        {
+            stringBuilder2.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+            stringBuilder2.Append("<tr>");
+            if (Convert.ToInt32(ViewState["FY"].ToString().Substring(0, 4)) < 2014)
+            {
+                stringBuilder2.Append("<td colspan='2' align='center'><strong>Componentwise Collection Report For Session </strong>" + ViewState["FY"].ToString().ToString() + "</td>");
+            }
+            else
+            {
+                stringBuilder2.Append("<td colspan='2' align='center'><strong>Componentwise Collection Report</strong> ( From " + pcalFromDate.GetDateValue().ToString("dd MMM yyyy"));
+                stringBuilder2.Append(" To " + pcalToDate.GetDateValue().ToString("dd MMM yyyy") + " )</td>");
+            }
+            stringBuilder2.Append("</tr>");
+            stringBuilder2.Append("<tr>");
+            stringBuilder2.Append("<td style='text-align:left;' class='tblheader'>Fee Components</td>");
+            stringBuilder2.Append("<td style='width: 120px' align='right' class='tblheader'>Amount</td>");
+            stringBuilder2.Append("</tr>");
+            foreach (DataRow row in (InternalDataCollectionBase)ds.Tables[0].Rows)
+            {
+                stringBuilder2.Append("<tr>");
+                stringBuilder2.Append("<td align='left' class='tbltd'>");
+                stringBuilder2.Append(row["TransDesc"].ToString().Trim());
+                stringBuilder2.Append("</td>");
+                stringBuilder2.Append("<td align='right' class='tbltd'>");
+                stringBuilder2.Append(row["credit"].ToString().Trim());
+                stringBuilder2.Append("</td>");
+                stringBuilder2.Append("</tr>");
+                num3 += Convert.ToDouble(row["credit"].ToString().Trim());
+            }
+            stringBuilder2.Append("<tr>");
+            stringBuilder2.Append("<td colspan='2' align='right' class='tbltd'>");
+            stringBuilder2.Append("<strong>Total &nbsp;:&nbsp; &nbsp;&nbsp;" + string.Format("{0:F2}", num3));
+            stringBuilder2.Append("</td>");
+            stringBuilder2.Append("</tr>");
+            stringBuilder2.Append("</table>");
+            lblReport.Text = stringBuilder2.ToString().Trim();
+        }
+        string[] strArray = ViewState["FY"].ToString().Trim().Split('-');
+        double num6;
+        if (Convert.ToInt32(strArray[0]) >= 2014)
+        {
+            if (ds.Tables[1].Rows.Count > 0)
+            {
+                stringBuilder4.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+                foreach (DataRow row in (InternalDataCollectionBase)ds.Tables[1].Rows)
+                {
+                    stringBuilder4.Append("<tr>");
+                    stringBuilder4.Append("<td align='left' class='tbltd'><b>");
+                    stringBuilder4.Append(row["TransDesc"].ToString().Trim());
+                    stringBuilder4.Append("</b></td>");
+                    stringBuilder4.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+                    stringBuilder4.Append(row["credit"].ToString().Trim());
+                    stringBuilder4.Append("</b></td>");
+                    stringBuilder4.Append("</tr>");
+                }
+                stringBuilder4.Append("</table>");
+                lblFine.Text = stringBuilder4.ToString().Trim();
+            }
+            //if (ds.Tables[2].Rows.Count > 0)
+            //{
+            //    stringBuilder5.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+            //    foreach (DataRow row in (InternalDataCollectionBase)ds.Tables[2].Rows)
+            //    {
+            //        stringBuilder5.Append("<tr>");
+            //        stringBuilder5.Append("<td align='left' class='tbltd'><b>");
+            //        stringBuilder5.Append(row["TransDesc"].ToString().Trim());
+            //        stringBuilder5.Append("</b></td>");
+            //        stringBuilder5.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+            //        stringBuilder5.Append(row["credit"].ToString().Trim());
+            //        stringBuilder5.Append("</b></td>");
+            //        stringBuilder5.Append("</tr>");
+            //    }
+            //    stringBuilder5.Append("</table>");
+            //    lblHostel.Text = stringBuilder5.ToString().Trim();
+            //}
+            //if (ds.Tables[3].Rows.Count > 0)
+            //{
+            //    stringBuilder11.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+            //    stringBuilder11.Append("<tr>");
+            //    stringBuilder11.Append("<td align='left' class='tbltd' colspan='2'><b>Others</b></td></tr>");
+            //    foreach (DataRow row in (InternalDataCollectionBase)ds.Tables[3].Rows)
+            //    {
+            //        num2 += Convert.ToDouble(row["credit"].ToString().Trim());
+            //        stringBuilder11.Append("<tr>");
+            //        stringBuilder11.Append("<td align='left' class='tbltd'>");
+            //        stringBuilder11.Append(row["TransDesc"].ToString().Trim());
+            //        stringBuilder11.Append("</td>");
+            //        stringBuilder11.Append("<td align='right' class='tbltd'>");
+            //        stringBuilder11.Append(row["credit"].ToString().Trim());
+            //        stringBuilder11.Append("</td>");
+            //        stringBuilder11.Append("</tr>");
+            //    }
+            //    stringBuilder11.Append("<tr>");
+            //    stringBuilder11.Append("<td colspan='2' align='right' class='tbltd'>");
+            //    stringBuilder11.Append("<strong>Total &nbsp;:&nbsp; &nbsp;&nbsp;" + string.Format("{0:F2}", num2));
+            //    stringBuilder11.Append("</td>");
+            //    stringBuilder11.Append("</tr>");
+            //    stringBuilder11.Append("</table>");
+            //    lblOthers.Text = stringBuilder11.ToString().Trim();
+            //}
+            //if (ds.Tables[4].Rows.Count > 0)
+            //{
+            //    stringBuilder12.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+            //    foreach (DataRow row in (InternalDataCollectionBase)ds.Tables[4].Rows)
+            //        num1 += Convert.ToDouble(row["credit"].ToString().Trim());
+            //    stringBuilder12.Append("<tr>");
+            //    stringBuilder12.Append("<td align='left' class='tbltd'><b>Prev School Fee Collection</b></td>");
+            //    stringBuilder12.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+            //    stringBuilder12.Append(num1.ToString().Trim());
+            //    stringBuilder12.Append("</b></td>");
+            //    stringBuilder12.Append("</tr>");
+            //    stringBuilder12.Append("</table>");
+            //    lblPrev.Text = stringBuilder12.ToString().Trim();
+            //}
+            //if (ds.Tables[5].Rows.Count > 0)
+            //{
+            //    stringBuilder14.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+            //    foreach (DataRow row in (InternalDataCollectionBase)ds.Tables[5].Rows)
+            //    {
+            //        stringBuilder14.Append("<tr>");
+            //        stringBuilder14.Append("<td align='left' class='tbltd'><b>");
+            //        stringBuilder14.Append(row["TransDesc"].ToString().Trim());
+            //        stringBuilder14.Append("</b></td>");
+            //        stringBuilder14.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+            //        stringBuilder14.Append(row["credit"].ToString().Trim());
+            //        stringBuilder14.Append("</b></td>");
+            //        stringBuilder14.Append("</tr>");
+            //    }
+            //    stringBuilder14.Append("</table>");
+            //    lblPrevBus.Text = stringBuilder14.ToString().Trim();
+            //}
+            //if (ds.Tables[6].Rows.Count > 0)
+            //{
+            //    stringBuilder15.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+            //    foreach (DataRow row in (InternalDataCollectionBase)ds.Tables[6].Rows)
+            //    {
+            //        stringBuilder15.Append("<tr>");
+            //        stringBuilder15.Append("<td align='left' class='tbltd'><b>");
+            //        stringBuilder15.Append(row["TransDesc"].ToString().Trim());
+            //        stringBuilder15.Append("</b></td>");
+            //        stringBuilder15.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+            //        stringBuilder15.Append(row["credit"].ToString().Trim());
+            //        stringBuilder15.Append("</b></td>");
+            //        stringBuilder15.Append("</tr>");
+            //    }
+            //    stringBuilder15.Append("</table>");
+            //    lblPrevHost.Text = stringBuilder15.ToString().Trim();
+            //}
+            //if (ds.Tables[7].Rows.Count > 0)
+            //{
+            //    stringBuilder16.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+            //    stringBuilder16.Append("<tr>");
+            //    stringBuilder16.Append("<td align='left' class='tbltd'><b>");
+            //    string str2 = Convert.ToString(Convert.ToInt32(strArray[0].Trim()) + 1) + "-" + Convert.ToString(Convert.ToInt32(strArray[1].Trim()) + 1);
+            //    stringBuilder16.Append("Advance School Fee Collcetion For Session " + str2);
+            //    stringBuilder16.Append("</b></td>");
+            //    stringBuilder16.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+            //    stringBuilder16.Append(ds.Tables[7].Rows[0]["credit"].ToString().Trim());
+            //    stringBuilder16.Append("</b></td>");
+            //    stringBuilder16.Append("</tr>");
+            //    stringBuilder16.Append("</table>");
+            //}
+            //if (ds.Tables[8].Rows.Count > 0)
+            //{
+            //    stringBuilder16.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+            //    stringBuilder16.Append("<tr>");
+            //    stringBuilder16.Append("<td align='left' class='tbltd'><b>");
+            //    string str2 = Convert.ToString(Convert.ToInt32(strArray[0].Trim()) + 1) + "-" + Convert.ToString(Convert.ToInt32(strArray[1].Trim()) + 1);
+            //    stringBuilder16.Append("Advance Bus Fee Collcetion For Session " + str2);
+            //    stringBuilder16.Append("</b></td>");
+            //    stringBuilder16.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+            //    stringBuilder16.Append(ds.Tables[8].Rows[0]["credit"].ToString().Trim());
+            //    stringBuilder16.Append("</b></td>");
+            //    stringBuilder16.Append("</tr>");
+            //    stringBuilder16.Append("</table>");
+            //}
+            //if (ds.Tables[9].Rows.Count > 0)
+            //{
+            //    stringBuilder16.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+            //    stringBuilder16.Append("<tr>");
+            //    stringBuilder16.Append("<td align='left' class='tbltd'><b>");
+            //    string str2 = Convert.ToString(Convert.ToInt32(strArray[0].Trim()) + 1) + "-" + Convert.ToString(Convert.ToInt32(strArray[1].Trim()) + 1);
+            //    stringBuilder16.Append("Advance Hostel Fee Collcetion For Session " + str2);
+            //    stringBuilder16.Append("</b></td>");
+            //    stringBuilder16.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+            //    stringBuilder16.Append(ds.Tables[9].Rows[0]["credit"].ToString().Trim());
+            //    stringBuilder16.Append("</b></td>");
+            //    stringBuilder16.Append("</tr>");
+            //    stringBuilder16.Append("</table>");
+            //}
+            //if (ds.Tables[11].Rows.Count > 0)
+            //{
+            //    stringBuilder16.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+            //    stringBuilder16.Append("<tr>");
+            //    stringBuilder16.Append("<td align='left' class='tbltd'><b>");
+            //    string str2 = Convert.ToString(Convert.ToInt32(strArray[0].Trim()) + 1) + "-" + Convert.ToString(Convert.ToInt32(strArray[1].Trim()) + 1);
+            //    stringBuilder16.Append("Advance Book Fee Collcetion For Session " + str2);
+            //    stringBuilder16.Append("</b></td>");
+            //    stringBuilder16.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+            //    stringBuilder16.Append(ds.Tables[11].Rows[0]["credit"].ToString().Trim());
+            //    stringBuilder16.Append("</b></td>");
+            //    stringBuilder16.Append("</tr>");
+            //    stringBuilder16.Append("</table>");
+            //}
+            lblAdv.Text = stringBuilder16.ToString().Trim();
+           // num6 = num3 + Convert.ToDouble(ds.Tables[1].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[2].Rows[0][0].ToString()) + num2 + num1 + Convert.ToDouble(ds.Tables[5].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[6].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[7].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[8].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[9].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[11].Rows[0][0].ToString());
+            num6 = num3 + Convert.ToDouble(ds.Tables[1].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[2].Rows[0][0].ToString()) + num2 + num1 + Convert.ToDouble(ds.Tables[6].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[7].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[8].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[9].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[10].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[12].Rows[0][0].ToString());
+        }
+        else
+        {
+            if (ds.Tables[1].Rows.Count > 0)
+            {
+                stringBuilder3.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+                foreach (DataRow row in (InternalDataCollectionBase)ds.Tables[1].Rows)
+                {
+                    stringBuilder3.Append("<tr>");
+                    stringBuilder3.Append("<td align='left' class='tbltd'><b>");
+                    stringBuilder3.Append(row["TransDesc"].ToString().Trim());
+                    stringBuilder3.Append("</b></td>");
+                    stringBuilder3.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+                    stringBuilder3.Append(row["credit"].ToString().Trim());
+                    stringBuilder3.Append("</b></td>");
+                    stringBuilder3.Append("</tr>");
+                }
+                stringBuilder3.Append("</table>");
+                lblFine.Text = stringBuilder3.ToString().Trim();
+            }
+            if (ds.Tables[2].Rows.Count > 0)
+            {
+                stringBuilder4.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+                foreach (DataRow row in (InternalDataCollectionBase)ds.Tables[2].Rows)
+                {
+                    stringBuilder4.Append("<tr>");
+                    stringBuilder4.Append("<td align='left' class='tbltd'><b>");
+                    stringBuilder4.Append(row["TransDesc"].ToString().Trim());
+                    stringBuilder4.Append("</b></td>");
+                    stringBuilder4.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+                    stringBuilder4.Append(row["credit"].ToString().Trim());
+                    stringBuilder4.Append("</b></td>");
+                    stringBuilder4.Append("</tr>");
+                }
+                stringBuilder4.Append("</table>");
+                lblBus.Text = stringBuilder4.ToString().Trim();
+            }
+            if (ds.Tables[3].Rows.Count > 0)
+            {
+                stringBuilder5.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+                foreach (DataRow row in (InternalDataCollectionBase)ds.Tables[3].Rows)
+                {
+                    stringBuilder5.Append("<tr>");
+                    stringBuilder5.Append("<td align='left' class='tbltd'><b>");
+                    stringBuilder5.Append(row["TransDesc"].ToString().Trim());
+                    stringBuilder5.Append("</b></td>");
+                    stringBuilder5.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+                    stringBuilder5.Append(row["credit"].ToString().Trim());
+                    stringBuilder5.Append("</b></td>");
+                    stringBuilder5.Append("</tr>");
+                }
+                stringBuilder5.Append("</table>");
+                lblHostel.Text = stringBuilder5.ToString().Trim();
+            }
+            if (ds.Tables[4].Rows.Count > 0)
+            {
+                stringBuilder6.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+                foreach (DataRow row in (InternalDataCollectionBase)ds.Tables[4].Rows)
+                {
+                    stringBuilder6.Append("<tr>");
+                    stringBuilder6.Append("<td align='left' class='tbltd'><b>");
+                    stringBuilder6.Append(row["TransDesc"].ToString().Trim());
+                    stringBuilder6.Append("</b></td>");
+                    stringBuilder6.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+                    stringBuilder6.Append(row["credit"].ToString().Trim());
+                    stringBuilder6.Append("</b></td>");
+                    stringBuilder6.Append("</tr>");
+                }
+                stringBuilder6.Append("</table>");
+                lblProsFee.Text = stringBuilder6.ToString().Trim();
+            }
+            if (ds.Tables[5].Rows.Count > 0)
+            {
+                stringBuilder7.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+                foreach (DataRow row in (InternalDataCollectionBase)ds.Tables[5].Rows)
+                {
+                    stringBuilder7.Append("<tr>");
+                    stringBuilder7.Append("<td align='left' class='tbltd'><b>");
+                    stringBuilder7.Append(row["TransDesc"].ToString().Trim());
+                    stringBuilder7.Append("</b></td>");
+                    stringBuilder7.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+                    stringBuilder7.Append(row["credit"].ToString().Trim());
+                    stringBuilder7.Append("</b></td>");
+                    stringBuilder7.Append("</tr>");
+                }
+                stringBuilder7.Append("</table>");
+                lblMiscFee.Text = stringBuilder7.ToString().Trim();
+            }
+            if (ds.Tables[6].Rows.Count > 0)
+            {
+                stringBuilder8.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+                foreach (DataRow row in (InternalDataCollectionBase)ds.Tables[6].Rows)
+                {
+                    stringBuilder8.Append("<tr>");
+                    stringBuilder8.Append("<td align='left' class='tbltd'><b>");
+                    stringBuilder8.Append(row["TransDesc"].ToString().Trim());
+                    stringBuilder8.Append("</b></td>");
+                    stringBuilder8.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+                    stringBuilder8.Append(row["credit"].ToString().Trim());
+                    stringBuilder8.Append("</b></td>");
+                    stringBuilder8.Append("</tr>");
+                }
+                stringBuilder8.Append("</table>");
+                lblBookMaterial.Text = stringBuilder8.ToString().Trim();
+            }
+            if (ds.Tables[7].Rows.Count > 0)
+            {
+                stringBuilder9.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+                foreach (DataRow row in (InternalDataCollectionBase)ds.Tables[7].Rows)
+                {
+                    stringBuilder9.Append("<tr>");
+                    stringBuilder9.Append("<td align='left' class='tbltd'><b>");
+                    stringBuilder9.Append(row["TransDesc"].ToString().Trim());
+                    stringBuilder9.Append("</b></td>");
+                    stringBuilder9.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+                    stringBuilder9.Append(row["credit"].ToString().Trim());
+                    stringBuilder9.Append("</b></td>");
+                    stringBuilder9.Append("</tr>");
+                }
+                stringBuilder9.Append("</table>");
+                lblAnudan.Text = stringBuilder9.ToString().Trim();
+            }
+            if (ds.Tables[8].Rows.Count > 0)
+            {
+                stringBuilder10.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+                foreach (DataRow row in (InternalDataCollectionBase)ds.Tables[8].Rows)
+                {
+                    stringBuilder10.Append("<tr>");
+                    stringBuilder10.Append("<td align='left' class='tbltd'><b>");
+                    stringBuilder10.Append(row["TransDesc"].ToString().Trim());
+                    stringBuilder10.Append("</b></td>");
+                    stringBuilder10.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+                    stringBuilder10.Append(row["credit"].ToString().Trim());
+                    stringBuilder10.Append("</b></td>");
+                    stringBuilder10.Append("</tr>");
+                }
+                stringBuilder10.Append("</table>");
+                lblPrevDue.Text = stringBuilder10.ToString().Trim();
+            }
+            if (ds.Tables[9].Rows.Count > 0)
+            {
+                stringBuilder16.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+                stringBuilder16.Append("<tr>");
+                stringBuilder16.Append("<td align='left' class='tbltd'><b>");
+                string str2 = Convert.ToString(Convert.ToInt32(strArray[0].Trim()) + 1) + "-" + Convert.ToString(Convert.ToInt32(strArray[1].Trim()) + 1);
+                stringBuilder16.Append("Advance Collcetion For Session " + str2);
+                stringBuilder16.Append("</b></td>");
+                stringBuilder16.Append("<td align='right' class='tbltd' style='width: 120px'><b>");
+                stringBuilder16.Append(ds.Tables[9].Rows[0]["credit"].ToString().Trim());
+                stringBuilder16.Append("</b></td>");
+                stringBuilder16.Append("</tr>");
+                stringBuilder16.Append("</table>");
+                lblAdv.Text = stringBuilder16.ToString().Trim();
+            }
+            num6 = num3 + Convert.ToDouble(ds.Tables[1].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[2].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[3].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[4].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[5].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[6].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[7].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[8].Rows[0][0].ToString()) + Convert.ToDouble(ds.Tables[9].Rows[0][0].ToString());
+        }
+        stringBuilder13.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+        stringBuilder13.Append("<tr>");
+        stringBuilder13.Append("<td align='right' class='tbltd'><b>");
+        stringBuilder13.Append("<strong>Total &nbsp;:&nbsp; &nbsp;&nbsp;" + string.Format("{0:F2}", num6));
+        stringBuilder13.Append("</b></td>");
+        stringBuilder13.Append("</tr>");
+        stringBuilder13.Append("</table>");
+        StringBuilder stringBuilder19 = new StringBuilder();
+        if (Convert.ToInt32(strArray[0]) >= 2014)
+        {
+            if (ds.Tables[10].Rows.Count > 0)
+            {
+                //stringBuilder17.Append("<br/><table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+                //stringBuilder17.Append("<tr>");
+                //stringBuilder17.Append("<td colspan='2' align='left' class='tbltd'>");
+                //stringBuilder17.Append("<b>Adjustment </b></td>");
+                //stringBuilder17.Append("</tr>");
+                //foreach (DataRow row in (InternalDataCollectionBase)ds.Tables[10].Rows)
+                //{
+                //    stringBuilder17.Append("<tr>");
+                //    stringBuilder17.Append("<td align='left' class='tbltd'>");
+                //    stringBuilder17.Append(row["TransDesc"].ToString().Trim());
+                //    stringBuilder17.Append("</td>");
+                //    stringBuilder17.Append("<td align='right' class='tbltd' style='width: 120px'>");
+                //    stringBuilder17.Append(row["credit"].ToString().Trim());
+                //    stringBuilder17.Append("</td>");
+                //    stringBuilder17.Append("</tr>");
+                //    num4 += Convert.ToDouble(row["credit"].ToString().Trim());
+                //}
+                //stringBuilder17.Append("<tr>");
+                //stringBuilder17.Append("<td colspan='2' align='right' class='tbltd'><b> Total : ");
+                //stringBuilder17.Append(string.Format("{0:F2}", num4));
+                //stringBuilder17.Append("</b></td>");
+                //stringBuilder17.Append("</tr>");
+                //stringBuilder17.Append("</table>");
+                //lblAdj.Text = stringBuilder17.ToString().Trim();
+                //stringBuilder19.Append("<table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+                //stringBuilder19.Append("<tr>");
+                //stringBuilder19.Append("<td align='right' class='tbltd'><b>");
+                //stringBuilder19.Append("<strong>Grand Total &nbsp;:&nbsp; &nbsp;&nbsp;" + string.Format("{0:F2}", (num6 + num4)));
+                //stringBuilder19.Append("</b></td>");
+                //stringBuilder19.Append("</tr>");
+                //stringBuilder19.Append("</table>");
+                //lblGTotal.Text = stringBuilder19.ToString();
+            }
+            else
+            {
+                lblGTotal.Text = "";
+                lblAdj.Text = "";
+            }
+        }
+        //if (ds.Tables[12].Rows.Count > 0)
+        //{
+        //    stringBuilder18.Append("<br/><table cellpadding='1' cellspacing='1'  width='700px' style='background-color:#CCC;' >");
+        //    stringBuilder18.Append("<tr>");
+        //    stringBuilder18.Append("<td colspan='2' align='left' class='tbltd'>");
+        //    stringBuilder18.Append("<b>Sale Return </b></td>");
+        //    stringBuilder18.Append("</tr>");
+        //    foreach (DataRow row in (InternalDataCollectionBase)ds.Tables[12].Rows)
+        //    {
+        //        stringBuilder18.Append("<tr>");
+        //        stringBuilder18.Append("<td align='left' class='tbltd'>");
+        //        stringBuilder18.Append(row["TransDesc"].ToString().Trim());
+        //        stringBuilder18.Append("</td>");
+        //        stringBuilder18.Append("<td align='right' class='tbltd' style='width: 120px'>");
+        //        stringBuilder18.Append(row["credit"].ToString().Trim());
+        //        stringBuilder18.Append("</td>");
+        //        stringBuilder18.Append("</tr>");
+        //        num5 += Convert.ToDouble(row["credit"].ToString().Trim());
+        //    }
+        //    stringBuilder18.Append("<tr>");
+        //    stringBuilder18.Append("<td colspan='2' align='right' class='tbltd'><b> Total Sale Return: ");
+        //    stringBuilder18.Append(string.Format("{0:F2}", num5));
+        //    stringBuilder18.Append("</b></td>");
+        //    stringBuilder18.Append("</tr>");
+        //    stringBuilder18.Append("</table>");
+        //    stringBuilder18.Append("<table border='0px' cellpadding='1' width='700px' cellspacing='0' width='100%'>");
+        //    stringBuilder18.Append("<tr align='right'>");
+        //    stringBuilder18.Append("<td  style='border:0px' align='right'></br>");
+        //    stringBuilder18.Append("<strong >Net Amount &nbsp;:&nbsp;</strong>");
+        //    double num7 = num6 + num4 - num5;
+        //    stringBuilder18.Append("<strong >" + string.Format("{0:F2}", num7) + "</strong> ");
+        //    stringBuilder18.Append("</td>");
+        //    stringBuilder18.Append("</tr>");
+        //    stringBuilder18.Append("</table>");
+        //    lblSaleRet.Text = stringBuilder18.ToString().Trim();
+        //}
+        //else
+        //    lblSaleRet.Text = "";
+        if (Convert.ToDouble(num6) > 0.0)
+        {
+            lblTotal.Text = stringBuilder13.ToString().Trim();
+            if (Convert.ToInt32(strArray[0]) >= 2014)
+                Session["printData"] = (stringBuilder1.ToString().Trim() + stringBuilder2.ToString().Trim() + stringBuilder4.ToString().Trim() + stringBuilder5.ToString().Trim() + stringBuilder11.ToString().Trim() + stringBuilder12.ToString().Trim() + stringBuilder14.ToString().Trim() + stringBuilder15.ToString().Trim() + stringBuilder16.ToString().Trim() + stringBuilder13.ToString().Trim() + stringBuilder17.ToString().Trim() + stringBuilder19.ToString().Trim() + stringBuilder18.ToString().Trim());
+            else
+                Session["printData"] = (stringBuilder1.ToString().Trim() + stringBuilder2.ToString().Trim() + stringBuilder3.ToString().Trim() + stringBuilder4.ToString().Trim() + stringBuilder5.ToString().Trim() + stringBuilder10.ToString().Trim() + stringBuilder6.ToString().Trim() + stringBuilder8.ToString().Trim() + stringBuilder9.ToString().Trim() + stringBuilder7.ToString().Trim() + stringBuilder16.ToString().Trim() + stringBuilder13.ToString().Trim() + stringBuilder18.ToString().Trim());
+        }
+        else
+        {
+            lblAnudan.Text = string.Empty;
+            lblBookMaterial.Text = string.Empty;
+            lblBus.Text = string.Empty;
+            lblFine.Text = string.Empty;
+            lblHostel.Text = string.Empty;
+            lblMiscFee.Text = string.Empty;
+            lblPrevDue.Text = string.Empty;
+            lblProsFee.Text = string.Empty;
+            lblReport.Text = string.Empty;
+            lblTotal.Text = string.Empty;
+            lblAdv.Text = string.Empty;
+            lblPrev.Text = string.Empty;
+            lblOthers.Text = string.Empty;
+            lblPrevBus.Text = string.Empty;
+            lblPrevHost.Text = string.Empty;
+            lblSaleRet.Text = string.Empty;
+            ScriptManager.RegisterClientScriptBlock((Control)btnShow, btnShow.GetType(), "ShowMessage", "alert('No Record Found');", true);
+        }
+    }
+
+    private string Information()
+    {
+        Common common = new Common();
+        DataTable dataTable1 = new DataTable();
+        DataSet dataSet = new DataSet();
+        StringBuilder stringBuilder = new StringBuilder();
+        clsDAL clsDal = new clsDAL();
+        string str1 = Server.MapPath("../XMLFiles") + "\\Detail.xml";
+        if (File.Exists(str1))
+        {
+            int num = (int)dataSet.ReadXml(str1);
+            string str2 = Session["SSVMID"].ToString();
+            if (dataSet.Tables.Count > 0)
+            {
+                DataTable dataTable2 = new DataTable();
+                DataTable table = dataSet.Tables[0];
+                foreach (DataRow row in (InternalDataCollectionBase)dataSet.Tables[0].Rows)
+                {
+                    stringBuilder.Append("<table width='700px' border='0px'><tr>");
+                    stringBuilder.Append("<td align='center' style='font-size:20px;'><strong>" + clsDal.Decrypt(row["SchoolName"].ToString().Trim(), str2) + "</strong></td></tr>");
+                    stringBuilder.Append("<tr><td align='center' style='font-size:14px;'><b>" + clsDal.Decrypt(row["Address1"].ToString().Trim(), str2) + "," + clsDal.Decrypt(row["Address2"].ToString().Trim(), str2) + "</b></td></tr>");
+                    stringBuilder.Append("<tr><td align='center' style='font-size:14px;'><b>" + clsDal.Decrypt(row["Address3"].ToString().Trim(), str2) + ",Phone-" + clsDal.Decrypt(row["Phone"].ToString().Trim(), str2) + "</b>");
+                    stringBuilder.Append("</td></tr>");
+                    stringBuilder.Append("</table>");
+                }
+            }
+        }
+        return stringBuilder.ToString();
+    }
+
+    protected void btnPrint_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            Response.Redirect("rptFeeReceivedComponentPrint.aspx");
+        }
+        catch (Exception ex)
+        {
+        }
+    }
+
+    protected void drpModeOfPayment_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        lblReport.Text = "";
+    }
+
+    protected void btnOutstandingFee_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            Response.Redirect("rptFeeToBeReceivedComponent.aspx");           
+        }
+        catch (Exception ex)
+        {
+            string message = ex.Message;
+        }
+    }
+}

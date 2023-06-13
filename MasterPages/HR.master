@@ -1,0 +1,356 @@
+﻿<%@ Master Language="C#" AutoEventWireup="true" CodeFile="HR.master.cs" Inherits="MasterPages_HR" %>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head id="Head1" runat="server">
+    <title>CT-eVidyalaya</title>
+      <script src="../Scripts/CommonScript.js" type="text/javascript"></script>
+    <script src="../Scripts/accordionmenu.js" type="text/javascript"></script>
+    <link href="../css/accordionmenu.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="../css/layout.css" type="text/css">
+     <link href="../date-time/datetime.css" rel="stylesheet" type="text/css" />
+    <script src="../date-time/jquery.min.js" type="text/javascript"></script>
+    <link href="../font-awesome-4.7.0/css/font-awesome.css" rel="stylesheet" type="text/css" />
+    <link href="../font-awesome-4.7.0/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
+    
+    <script language="javascript" type="text/javascript">
+        function extractNumber(obj, decimalPlaces, allowNegative) {
+            var temp = obj.value;
+
+            // avoid changing things if already formatted correctly
+            var reg0Str = '[0-9]*';
+            if (decimalPlaces > 0) {
+                reg0Str += '\\.?[0-9]{0,' + decimalPlaces + '}';
+            } else if (decimalPlaces < 0) {
+                reg0Str += '\\.?[0-9]*';
+            }
+            reg0Str = allowNegative ? '^-?' + reg0Str : '^' + reg0Str;
+            reg0Str = reg0Str + '$';
+            var reg0 = new RegExp(reg0Str);
+            if (reg0.test(temp)) return true;
+
+            // first replace all non numbers
+            var reg1Str = '[^0-9' + (decimalPlaces != 0 ? '.' : '') + (allowNegative ? '-' : '') + ']';
+            var reg1 = new RegExp(reg1Str, 'g');
+            temp = temp.replace(reg1, '');
+
+            if (allowNegative) {
+                // replace extra negative
+                var hasNegative = temp.length > 0 && temp.charAt(0) == '-';
+                var reg2 = /-/g;
+                temp = temp.replace(reg2, '');
+                if (hasNegative) temp = '-' + temp;
+            }
+
+            if (decimalPlaces != 0) {
+                var reg3 = /\./g;
+                var reg3Array = reg3.exec(temp);
+                if (reg3Array != null) {
+                    // keep only first occurrence of .
+                    //  and the number of places specified by decimalPlaces or the entire string if decimalPlaces < 0
+                    var reg3Right = temp.substring(reg3Array.index + reg3Array[0].length);
+                    reg3Right = reg3Right.replace(reg3, '');
+                    reg3Right = decimalPlaces > 0 ? reg3Right.substring(0, decimalPlaces) : reg3Right;
+                    temp = temp.substring(0, reg3Array.index) + '.' + reg3Right;
+                }
+            }
+
+            obj.value = temp;
+        }
+
+        function blockNonNumbers(obj, e, allowDecimal, allowNegative) {
+
+
+            var key;
+            var isCtrl = false;
+            var keychar;
+            var reg;
+
+            if (window.event) {
+                key = e.keyCode;
+                isCtrl = window.event.ctrlKey
+            }
+            else if (e.which) {
+                key = e.which;
+                isCtrl = e.ctrlKey;
+            }
+
+            if (isNaN(key)) return true;
+
+            keychar = String.fromCharCode(key);
+
+            // check for backspace or delete, or if Ctrl was pressed
+            if (key == 8 || isCtrl) {
+                return true;
+            }
+
+            reg = /\d/;
+            var isFirstN = allowNegative ? keychar == '-' && obj.value.indexOf('-') == -1 : false;
+            var isFirstD = allowDecimal ? keychar == '.' && obj.value.indexOf('.') == -1 : false;
+
+            return isFirstN || isFirstD || reg.test(keychar);
+        }
+
+    </script>
+      <script type="text/javascript">
+          window.onscroll = function () { scrollFunction() };
+
+          function scrollFunction() {
+
+              if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+                  var id = document.getElementById("Backtotop");
+                  document.getElementById("Backtotop").style.display = "block";
+              } else {
+                  document.getElementById("Backtotop").style.display = "none";
+              }
+          }
+
+          // When the user clicks on the button, scroll to the top of the document
+          function topFunction() {
+              document.body.scrollTop = 0;
+              document.documentElement.scrollTop = 0;
+          }
+    </script>
+
+     <script type="text/javascript">
+         $(document).ready(function () {
+             // Making 2 variable month and day
+             var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+             var dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+
+             // make single object
+             var newDate = new Date();
+             // make current time
+             newDate.setDate(newDate.getDate());
+             // setting date and time
+             $('#Date').html(dayNames[newDate.getDay()] + " " + newDate.getDate() + ' ' + monthNames[newDate.getMonth()] + ' ' + newDate.getFullYear());
+
+             setInterval(function () {
+                 // Create a newDate() object and extract the seconds of the current time on the visitor's
+                 var seconds = new Date().getSeconds();
+                 // Add a leading zero to seconds value
+                 $("#sec").html((seconds < 10 ? "0" : "") + seconds);
+             }, 1000);
+
+             setInterval(function () {
+                 // Create a newDate() object and extract the minutes of the current time on the visitor's
+                 var minutes = new Date().getMinutes();
+                 // Add a leading zero to the minutes value
+                 $("#min").html((minutes < 10 ? "0" : "") + minutes);
+             }, 1000);
+
+             setInterval(function () {
+                 // Create a newDate() object and extract the hours of the current time on the visitor's
+                 var hours = new Date().getHours();
+                 // Add a leading zero to the hours value
+                 $("#hours").html((hours < 10 ? "0" : "") + hours);
+             }, 1000);
+         });
+
+</script>
+
+
+</head>
+<body>
+    <form id="form1" runat="server">
+    <asp:ScriptManager ID="ScriptManager1" runat="server">
+    </asp:ScriptManager>
+     <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0" class="outertable">
+        <tr>
+           
+            <td height="60" valign="middle" class="topbar">
+                 
+                <div class="logo-img">
+                    <img src="../images/logo-new.png" width="60" />
+                </div>
+                <div class="logo-txt">
+                   <asp:Label ID="lblSSVM" runat="server" Text=""></asp:Label>
+                </div>
+                
+                <div class="rght-side">
+                    <div class="clock">
+                        <div id="Date"></div>
+                        <ul>
+                        <li id="hours"></li>
+                        <li id="point">:</li>
+                        <li id="min"></li>
+                        <li id="point">:</li>
+                        <li id="sec"></li>
+                        </ul>
+                     </div>
+                 </div>
+            
+            </td>
+        </tr>
+    </table>
+    <table width="90%" border="0" align="center" cellpadding="0" cellspacing="0" class="outertable outer-btm">
+        <tr>
+            <td class="innersecbar" valign="top">
+             <div class="innersecbar_lft">
+                <div style="float: left; text-align: left;">
+                <%--    <asp:ImageButton ID="imgBtnDashboard" runat="server" ImageUrl="" AlternateText="Dashboard"  CssClass="fa fa-dashboard space"
+                        OnClick="imgBtnDashboard_Click" />--%>
+                          <asp:LinkButton ID="lbDashboard" runat="server" Font-Underline="false" 
+                        onclick="lbDashboard_Click"  CssClass="fa fa-dashboard space"> Dashboard</asp:LinkButton>
+
+                    
+                </div> 
+                <div  class="logininf wlcm">
+                        Welcome : <span class="logininfhl">
+                            <asp:Label ID="lblUser" runat="server" Text="Label"></asp:Label></span>
+                </div>
+            </div>
+                <div class="logininf innersecbar_mdl">
+                        <h3>HR & PAYROLL</h3> 
+                </div>
+               <div style="width: 380px; float: right; text-align:right; ">
+                   
+                    <div style="width: 170px; height: 32px; float: right; margin-left: 10px;">
+                        <a href="HRHome.aspx">
+                             <i class="fa fa-home space"> Home</i></a>
+                      <%--  <asp:ImageButton ID="lmgBtnLogout" runat="server"  ImageUrl=""  AlternateText=" Logout" CssClass="fa fa-sign-out space"
+                            OnClick="lmgBtnLogout_Click" />--%>
+                               <asp:LinkButton ID="lbLogOut" runat="server" CssClass="fa fa-sign-out space" 
+                            Font-Underline="false" onclick="lbLogOut_Click"> Logout</asp:LinkButton>
+                    </div>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top">
+                <table border="0" cellspacing="0" cellpadding="0" style="height: 100%; width: 100%;">
+                    <tr>
+                        <td valign="top" class="nav">
+                            <div id="acdnmenu">
+                                <ul>
+                                    <li>Master Entry
+                                        <ul>
+                                            <li><a href="../HR/DesignationList.aspx">Designation</a></li>
+                                            <li><a href="../HR/Allowances.aspx">Allowances</a></li>
+                                            <li><a href="../HR/Deductions.aspx">Deductions</a></li>
+                                            <li><a href="../HR/EmployeeDAMaster.aspx">Modify DA Rate</a></li>
+                                          <%--  <li><a href="../HR/EmployeeEPFMaster.aspx">Modify EPF Rate</a></li>
+                                            <li><a href="../HR/EmployeeHRAMaster.aspx">Modify HRA Rate</a></li>--%>
+                                            <li><a href="../HR/LeaveMaster.aspx">Leave Master</a></li>
+                                          <%--  <li><a href="../HR/EmpTrngList.aspx">Employee Training Master</a></li>--%>
+                                            <li><a href="../HR/EmpQual.aspx">Qualification Master</a></li>
+                                            <li><a href="../HR/EmpShiftMaster.aspx">Working Shift</a></li>
+                                             <li><a href="../HR/Conditions.aspx">HR Conditions</a></li>
+                                           
+                                            
+                                        </ul>
+                                    </li>
+                                    <li>Establishment
+                                        <ul>
+                                            <li><a href="../HR/HRHome.aspx">HOME(HR Summary)</a></li>
+                                            <li><a href="../HR/SchoolMCMaster.aspx">Managing Commitee</a></li>
+                                            <li><a href="../HR/EmpListSSVM.aspx">Staff Entry</a></li>
+                                            <li><a href="../HR/rptEmployeeListNew.aspx">Staff List</a></li>
+                                            <li><a href="../HR/EmpShiftAssign.aspx">Assign Working Shift</a></li>
+                                            <li><a href="../HR/SubjectTeacher.aspx">Assign Subject wise Teacher</a></li>
+                                            <li><a href="../HR/TeachersAssessment.aspx">Teacher Assessment</a></li>
+                                            <li><a href="../HR/Holiday.aspx">Define Holidays</a></li>
+                                        </ul>
+                                    </li>
+                                    <li>Attendance
+                                        <ul>
+                                            <li><a href="../HR/EmpAttendance.aspx">Staff Attendance</a></li>
+                                            <li><a href="../HR/EmpAttndnceModify.aspx">Modify Staff Attendance</a></li>
+                                            
+                                          <%--  <li><a href="../HR/rptStudAttendanceClasswise.aspx">Individual Attendance&nbsp;Report</a></li>--%>
+                                            <li><a href="../HR/rptMonthWiseAttendance.aspx">Daily&nbsp;Attendance&nbsp;Report</a></li>
+                                            <li><a href="../HR/rptMonthWiseYearlyAttendance.aspx">Consolidated&nbsp;Attendance&nbsp;Report</a></li>
+                                        </ul>
+                                    </li>
+                                    
+                                    <li>Leave
+                                        <ul>
+                                            <li><a href="../HR/LeaveAuthorize.aspx">Authorize Leave</a></li>
+                                            <li><a href="../HR/LeaveBalance.aspx">Outstanding Leave Entry</a></li>
+                                            <li><a href="../HR/LeaveApply.aspx">Apply Leave</a></li>
+                                            <li><a href="../HR/LeaveApproveList.aspx">Approve Leave</a></li>
+                                            <li><a href="../HR/LeaveCancel.aspx">Cancel Leave</a></li>
+                                            <li><a href="../HR/LeaveStatus.aspx">Leave Status</a></li>
+                                            <li><a href="../HR/rptLeaveAvailed.aspx">Leave Availed Report</a></li>
+                                            <li><a href="../HR/LeaveClaim.aspx">Leave Claim</a></li>
+                                            <li><a href="../HR/LeaveClaimAppList.aspx">Approve Salary Claim</a></li>
+                                            <li><a href="../HR/rptLeaveClaim.aspx">Salary Claim Report</a></li>
+                                           
+                                            <li><a href="../HR/LeaveEncashment.aspx">Apply Leave Encashment</a></li>
+                                             <li><a href="../HR/LeaveEncashmentList.aspx">Manage Leave Encashment</a></li>
+                                              <li><a href="../HR/rptLeaveAvailedSum.aspx">Leave Availed Report(Summary)</a></li>
+                                        </ul>
+                                    </li>
+                                    <li>Payroll Management
+                                        <ul>
+                                            <li><a href="../HR/EmployeeSalaryStructure.aspx">Salary Structure</a></li>
+                                         <li><a href="../HR/HRInit.aspx">HR Init On Computerization</a></li>
+                                          <li><a href="../HR/LoanMod.aspx">Outstanding Loan/Adv Modification(Staff)</a></li>
+                                            
+                                           <%-- <li><a href="../HR/LoanInit.aspx">Outstanding Loan Entry (Staff)</a></li>
+                                            <li><a href="../HR/SalaryInit.aspx">Outstanding Salary Entry (Staff)</a></li>--%>
+                                           <%--  <li><a href="../HR/LoanAdjustment.aspx">Loan Adjustment</a></li>--%>
+                                             
+                                            <li><a href="../HR/LoanAdvance.aspx">Loan/Advance</a></li>
+                                            <li><a href="../HR/LoanPremRec.aspx">Loan Recovery</a></li>
+                                            <li><a href="../HR/SetSalaryStatus.aspx">Withheld Salary</a></li>
+                                            <li><a href="../HR/Miscrecovery.aspx">Recovery Deduction</a></li>
+                                            <li><a href="../HR/GenerateSalary.aspx">Generate Salary</a></li>
+                                             <li><a href="../HR/SalaryAdj.aspx">Modify Generated Salary</a></li>
+                                            <li><a href="../HR/SalaryPayment.aspx">Salary Payment</a></li>
+                                            <li><a href="../HR/ArrearAuthorize.aspx">Authorize Interim Payment</a></li>
+                                            <li><a href="../HR/ArrearRevert.aspx">Revert Arrear</a></li>
+                                            <li><a href="../HR/rptPayBillNew.aspx">Payroll</a></li>
+                                            <li><a href="../HR/rptBankPayroll.aspx">Payroll for Bank</a></li>
+                                            <li><a href="../HR/rptSalSlip.aspx">Salary Slip</a></li>
+                                            <li><a href="../HR/SalarySettlement.aspx">Settlement on Discharge</a></li>
+                                            <li><a href="../HR/rptEmpSalStructure.aspx">Authorised Salary</a></li>
+                                            <li><a href="../HR/rptLoanAdvance.aspx">Loan/Advance Report</a></li>
+                                            <li><a href="../HR/rptEmpTransactions.aspx">Employee Transactions History</a></li>
+                                            <li><a href="../HR/rptDedReport.aspx">Salary Deduction Report</a></li>
+                                            <li><a href="../HR/rptSalDedSum.aspx">Salary Deduction Summary</a></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </div>
+                        </td>
+                        <td valign="top" class="innertblcon">
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                
+                                <tr>
+                                   
+                                    <td bgcolor="#FEFEFE" valign="top">
+                                        <asp:ContentPlaceHolder ID="ContentPlaceHolder1" runat="server">
+                                        </asp:ContentPlaceHolder>
+                                    </td>
+                                    
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+         </table>
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="height: 100%;">
+         <tr>
+        <td>
+        <div style="width: 8%; float:right; padding-bottom:10px; text-align:right" >
+              <button type="button" id="Backtotop" onclick="return topFunction();"><i class="fa fa-arrow-up"></i> BackToTop</button>
+            </div>
+        </td>
+        </tr>
+         <tr>
+            <td valign="middle" class="footer">
+            <div style="padding:10px;">
+                <div style="width: 40%; float:left; padding-bottom:10px;">Vidyalaya 1.0 &copy; 2020 | All Rights Reserved</div>
+                <div style="width: 40%; float:right; padding-bottom:10px; text-align:right">Powered by : <a href="http://www.xprosolutions.co.in/" target="_blank">XPRO</a>
+                </div>
+            </div>
+            </td>
+        </tr>
+    </table>
+    </form>
+</body>
+</html>
